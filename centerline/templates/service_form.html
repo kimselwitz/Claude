@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}{% if service %}Edit{% else %}Add{% endif %} Service - Centerline{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h1 class="display-5">
+            <i class="bi bi-list-check"></i>
+            {% if service %}Edit{% else %}Add New{% endif %} Service
+        </h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="service_name" class="form-label">Service Name *</label>
+                        <input type="text" class="form-control" id="service_name" name="service_name"
+                               value="{{ service.service_name if service else '' }}"
+                               placeholder="e.g., Private Lesson, Half Lease - Boo"
+                               required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="price" class="form-label">Price *</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="price" name="price"
+                                   step="0.01" min="0"
+                                   value="{{ service.price if service else '' }}"
+                                   placeholder="0.00"
+                                   required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="billing_frequency" class="form-label">Billing Frequency *</label>
+                        <select class="form-select" id="billing_frequency" name="billing_frequency" required>
+                            <option value="one-time" {% if service and service.billing_frequency == 'one-time' %}selected{% endif %}>
+                                One-Time (per lesson/session)
+                            </option>
+                            <option value="monthly" {% if service and service.billing_frequency == 'monthly' %}selected{% endif %}>
+                                Monthly (recurring)
+                            </option>
+                        </select>
+                        <div class="form-text">
+                            One-time for lessons and single charges, Monthly for leases and board
+                        </div>
+                    </div>
+
+                    {% if service %}
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="active" name="active"
+                               {% if service.active %}checked{% endif %}>
+                        <label class="form-check-label" for="active">
+                            Active Service
+                        </label>
+                    </div>
+                    {% endif %}
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save"></i> Save Service
+                        </button>
+                        <a href="{{ url_for('services') }}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h5 class="card-title">Service Guidelines</h5>
+                <ul class="small mb-0">
+                    <li>Use descriptive names that include details</li>
+                    <li>For horse-specific services, include the horse name (e.g., "Half Lease - Apollo")</li>
+                    <li>Set accurate prices - they can be updated later if needed</li>
+                    <li>One-time services are charged per occurrence</li>
+                    <li>Monthly services are recurring charges</li>
+                    {% if service %}
+                    <li>Deactivating a service keeps historical data but removes it from new transaction forms</li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+
+        <div class="card bg-light mt-3">
+            <div class="card-body">
+                <h5 class="card-title">Examples</h5>
+                <p class="small mb-1"><strong>One-Time:</strong></p>
+                <ul class="small">
+                    <li>Private Lesson - $75</li>
+                    <li>Group Lesson - $35</li>
+                    <li>Clinic Fee - $150</li>
+                </ul>
+                <p class="small mb-1"><strong>Monthly:</strong></p>
+                <ul class="small mb-0">
+                    <li>Half Lease - Boo - $400</li>
+                    <li>Full Board - Apollo - $800</li>
+                    <li>Pasture Board - $350</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

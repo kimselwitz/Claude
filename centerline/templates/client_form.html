@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}{% if client %}Edit{% else %}Add{% endif %} Client - Centerline{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h1 class="display-5">
+            <i class="bi bi-person{% if not client %}-plus{% endif %}"></i>
+            {% if client %}Edit{% else %}Add New{% endif %} Client
+        </h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Name *</label>
+                        <input type="text" class="form-control" id="name" name="name"
+                               value="{{ client.name if client else '' }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email"
+                               value="{{ client.email if client else '' }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="phone" class="form-label">Phone</label>
+                        <input type="tel" class="form-control" id="phone" name="phone"
+                               value="{{ client.phone if client else '' }}"
+                               placeholder="(555) 123-4567">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="horse_assignment" class="form-label">Horse Assignment</label>
+                        <input type="text" class="form-control" id="horse_assignment" name="horse_assignment"
+                               value="{{ client.horse_assignment if client else '' }}"
+                               placeholder="e.g., Leasing Boo, Rides school horses">
+                        <div class="form-text">Describe the client's horse arrangement</div>
+                    </div>
+
+                    {% if client %}
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="active" name="active"
+                               {% if client.active %}checked{% endif %}>
+                        <label class="form-check-label" for="active">
+                            Active Client
+                        </label>
+                    </div>
+                    {% endif %}
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save"></i> Save Client
+                        </button>
+                        <a href="{% if client %}{{ url_for('client_detail', client_id=client.id) }}{% else %}{{ url_for('clients') }}{% endif %}"
+                           class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h5 class="card-title">Tips</h5>
+                <ul class="small mb-0">
+                    <li>Name is required</li>
+                    <li>Email and phone are optional but recommended</li>
+                    <li>Horse assignment helps track which horses clients work with</li>
+                    {% if client %}
+                    <li>Deactivating a client hides them from the main dashboard but preserves their history</li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
