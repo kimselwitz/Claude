@@ -4,12 +4,20 @@ A simple, efficient web application for managing lesson charges, lease payments,
 
 ## Features
 
+### Billing & Client Management
 - **Dashboard**: Quick overview of all clients and their current balances
 - **Client Management**: Add, edit, and track clients with horse assignments
 - **Transaction Tracking**: Log lessons, charges, and payments with full history
 - **Services Management**: Configure lesson types, lease rates, and board prices
 - **Mobile-Friendly**: Responsive design works great on phones at the barn
 - **Fast Data Entry**: Minimal clicks to log lessons and payments
+
+### Messaging & Communication
+- **Direct Messaging**: Send private messages to other users
+- **Group Chats**: Create and manage group conversations
+- **Admin Broadcasts**: Send important announcements to all users (admin only)
+- **Unread Notifications**: Badge notifications for unread messages
+- **User Authentication**: Secure login system with role-based access
 
 ## Quick Start
 
@@ -35,11 +43,22 @@ A simple, efficient web application for managing lesson charges, lease payments,
    python init_db.py
    ```
 
-   This will create the database with sample services:
+   This will create the database with sample data:
+   
+   **Services:**
    - Private Lesson - $75
    - Semi-Private Lesson - $50
    - Half Lease - $400/month
    - Full Board - $800/month
+   
+   **Users:**
+   - Admin: admin / admin123
+   - Staff: staff / staff123
+   - Clients: sarah / sarah123, mike / mike123
+   
+   **Sample Clients:**
+   - Sarah Johnson (linked to user 'sarah')
+   - Mike Davis (linked to user 'mike')
 
 4. **Run the application:**
    ```bash
@@ -51,7 +70,24 @@ A simple, efficient web application for managing lesson charges, lease payments,
    http://localhost:5000
    ```
 
+6. **Login with default credentials:**
+   - Admin: `admin` / `admin123`
+   - Staff: `staff` / `staff123`
+   - Client: `sarah` / `sarah123` or `mike` / `mike123`
+
 ## Usage Guide
+
+### Logging In
+
+The application now requires login for all features:
+1. Navigate to http://localhost:5000
+2. Enter your username and password
+3. Click "Login"
+
+**Default Users:**
+- **Admin** (admin/admin123): Full access to all features including broadcasts
+- **Staff** (staff/staff123): Access to billing and messaging features
+- **Clients** (sarah/sarah123, mike/mike123): Linked to client records, can view their own info and use messaging
 
 ### Adding Your First Client
 
@@ -90,6 +126,46 @@ From the client detail page:
 
 Balances automatically calculate as: Total Charges - Total Payments
 
+### Using Messaging Features
+
+**Sending a Direct Message:**
+1. Click "Messages" in the navigation
+2. Click "New" button
+3. Select recipient and type your message
+4. Click "Send"
+
+**Viewing Conversations:**
+1. Go to Messages inbox
+2. Click on any conversation to view message history
+3. Type reply and click "Send"
+4. Messages are marked as read automatically
+
+**Creating a Group Chat:**
+1. Click "Messages" → "Groups"
+2. Click "Create New Group"
+3. Enter group name and description
+4. Select members to add
+5. Click "Create Group"
+
+**Sending Group Messages:**
+1. Go to Groups and select a group
+2. Type your message in the text box
+3. Click "Send"
+4. All group members will see the message
+
+**Admin Broadcasts:**
+(Admin users only)
+1. Click "Broadcast" in the navigation
+2. Type your announcement message
+3. Click "Send Broadcast"
+4. Message appears on all users' message inbox
+
+### User Roles
+
+- **Admin**: Full access - manage clients, services, transactions, send broadcasts
+- **Staff**: Can manage billing and use messaging features
+- **Client**: Can view their own transaction history and use messaging
+
 ## Project Structure
 
 ```
@@ -102,12 +178,19 @@ centerline/
 ├── centerline.db         # SQLite database (created after init)
 ├── templates/            # HTML templates
 │   ├── base.html
+│   ├── login.html
 │   ├── dashboard.html
 │   ├── clients.html
 │   ├── client_detail.html
 │   ├── client_form.html
 │   ├── services.html
-│   └── service_form.html
+│   ├── service_form.html
+│   ├── messages_inbox.html
+│   ├── conversation.html
+│   ├── broadcast.html
+│   ├── groups.html
+│   ├── group_chat.html
+│   └── group_form.html
 └── static/               # Static files (currently unused)
     ├── css/
     └── js/
@@ -115,7 +198,9 @@ centerline/
 
 ## Database Schema
 
-### Clients
+### Billing Tables
+
+**Clients**
 - id (primary key)
 - name
 - email
@@ -124,14 +209,14 @@ centerline/
 - active (boolean)
 - created_date
 
-### Services
+**Services**
 - id (primary key)
 - service_name
 - price
 - billing_frequency (one-time or monthly)
 - active (boolean)
 
-### Transactions
+**Transactions**
 - id (primary key)
 - client_id (foreign key)
 - service_id (foreign key, optional)
@@ -139,6 +224,42 @@ centerline/
 - transaction_date
 - transaction_type (charge or payment)
 - notes
+
+### Messaging Tables
+
+**Users**
+- id (primary key)
+- username (unique)
+- password_hash
+- client_id (foreign key, optional - links to client record)
+- role (admin, staff, client)
+- created_date
+- last_seen
+
+**Messages**
+- id (primary key)
+- sender_id (foreign key → users)
+- recipient_id (foreign key → users, optional for broadcasts/groups)
+- group_id (foreign key → chat_groups, optional)
+- message_text
+- is_broadcast (boolean)
+- is_read (boolean)
+- sent_date
+
+**Chat Groups**
+- id (primary key)
+- name
+- description
+- is_broadcast (boolean)
+- created_by (foreign key → users)
+- created_date
+
+**Group Members**
+- id (primary key)
+- group_id (foreign key → chat_groups)
+- user_id (foreign key → users)
+- joined_date
+- is_admin (boolean - group admin, not system admin)
 
 ## Tips for Barn Owners
 

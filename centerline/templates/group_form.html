@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Create Group - Centerline{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h1 class="display-5">
+            <i class="bi bi-plus-circle"></i> Create New Group
+        </h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Group Name *</label>
+                        <input type="text" class="form-control" id="name" name="name"
+                               placeholder="e.g., Lesson Coordinators, Weekend Riders"
+                               required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <input type="text" class="form-control" id="description" name="description"
+                               placeholder="Brief description of the group">
+                        <div class="form-text">Optional - helps others understand the group's purpose</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Add Members</label>
+                        <div class="form-text mb-2">Select users to add to this group (you'll be added as admin automatically)</div>
+                        <div style="max-height: 300px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 0.5rem;">
+                            {% for user in all_users %}
+                                {% if user.id != session.user_id %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="members"
+                                           value="{{ user.id }}" id="user{{ user.id }}">
+                                    <label class="form-check-label" for="user{{ user.id }}">
+                                        {{ user.username }}
+                                        {% if user.client_name %}
+                                            <small class="text-muted">({{ user.client_name }})</small>
+                                        {% endif %}
+                                        <span class="badge bg-{{ 'danger' if user.role == 'admin' else ('info' if user.role == 'staff' else 'secondary') }}">
+                                            {{ user.role }}
+                                        </span>
+                                    </label>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check-lg"></i> Create Group
+                        </button>
+                        <a href="{{ url_for('groups') }}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h5 class="card-title">Group Tips</h5>
+                <ul class="small mb-0">
+                    <li>Choose a clear, descriptive name</li>
+                    <li>Groups are great for coordinating lessons, events, or specific horse care</li>
+                    <li>You'll be the group admin and can manage members</li>
+                    <li>All selected members will be able to see and send messages</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card bg-light mt-3">
+            <div class="card-body">
+                <h5 class="card-title">Example Groups</h5>
+                <ul class="small mb-0">
+                    <li><strong>Lesson Coordinators</strong> - Schedule and coordinate lessons</li>
+                    <li><strong>Weekend Warriors</strong> - Weekend riders group</li>
+                    <li><strong>Apollo Care Team</strong> - For specific horse care coordination</li>
+                    <li><strong>Event Planning</strong> - Organize barn events</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

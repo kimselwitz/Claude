@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}{{ group.name }} - Centerline{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-md-12">
+        <a href="{{ url_for('groups') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i> Back to Groups
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-9">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-chat-square-dots"></i> {{ group.name }}
+                    </h5>
+                    <span class="badge bg-light text-dark">{{ members|length }} members</span>
+                </div>
+                {% if group.description %}
+                    <small class="d-block mt-1">{{ group.description }}</small>
+                {% endif %}
+            </div>
+            <div class="card-body" style="max-height: 500px; overflow-y: auto;" id="chatMessages">
+                {% if messages %}
+                    {% for message in messages %}
+                    <div class="mb-3 {% if message.sender_id == session.user_id %}text-end{% endif %}">
+                        <div class="d-inline-block p-3 rounded {% if message.sender_id == session.user_id %}bg-success text-white{% else %}bg-light{% endif %}"
+                             style="max-width: 70%;">
+                            <small class="d-block mb-1">
+                                <strong>{{ message.sender_name }}</strong>
+                                <span class="{% if message.sender_id == session.user_id %}text-white-50{% else %}text-muted{% endif %}">
+                                    - {{ message.sent_date|datetime }}
+                                </span>
+                            </small>
+                            <div>{{ message.message_text }}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center text-muted">
+                        <i class="bi bi-chat-dots" style="font-size: 3rem;"></i>
+                        <p class="mt-2">No messages yet. Start the conversation!</p>
+                    </div>
+                {% endif %}
+            </div>
+            {% if is_member %}
+            <div class="card-footer">
+                <form method="POST" action="{{ url_for('send_group_message', group_id=group.id) }}">
+                    <div class="input-group">
+                        <textarea class="form-control" name="message_text"
+                                  placeholder="Type your message..." rows="2" required></textarea>
+                        <button class="btn btn-success" type="submit">
+                            <i class="bi bi-send"></i> Send
+                        </button>
+                    </div>
+                </form>
+            </div>
+            {% else %}
+                <div class="card-footer bg-light text-muted">
+                    You are not a member of this group
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h6 class="mb-0"><i class="bi bi-people"></i> Members</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for member in members %}
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="bi bi-person-circle"></i> {{ member.username }}
+                                {% if member.is_admin %}
+                                    <span class="badge bg-primary">Admin</span>
+                                {% endif %}
+                            </div>
+                            {% if member.role == 'admin' %}
+                                <i class="bi bi-star-fill text-warning" title="System Admin"></i>
+                            {% endif %}
+                        </div>
+                        {% if member.client_name %}
+                            <small class="text-muted d-block">{{ member.client_name }}</small>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        {% if session.role == 'admin' or (members | selectattr('id', 'equalto', session.user_id) | selectattr('is_admin', 'equalto', 1) | list | length > 0) %}
+        <div class="card mt-3">
+            <div class="card-header bg-primary text-white">
+                <h6 class="mb-0"><i class="bi bi-person-plus"></i> Add Member</h6>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('add_group_member', group_id=group.id) }}">
+                    <div class="mb-2">
+                        <select class="form-select form-select-sm" name="user_id" required>
+                            <option value="">Select user...</option>
+                            <!-- Note: In production, populate this with non-members -->
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-primary w-100">
+                        <i class="bi bi-plus"></i> Add
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // Auto-scroll to bottom of messages
+    const chatMessages = document.getElementById('chatMessages');
+    if (chatMessages) {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+</script>
+{% endblock %}
+{% endblock %}

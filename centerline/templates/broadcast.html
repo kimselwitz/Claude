@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Send Broadcast - Centerline{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h1 class="display-4">
+            <i class="bi bi-megaphone"></i> Send Broadcast Message
+        </h1>
+        <p class="lead">Send a message to all users (Admin only)</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="bi bi-broadcast"></i> Broadcast Message</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> This message will be sent to all users and displayed on their message inbox.
+                </div>
+
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="message_text" class="form-label">Message</label>
+                        <textarea class="form-control" id="message_text" name="message_text"
+                                  rows="6" required
+                                  placeholder="Enter your broadcast message..."></textarea>
+                        <div class="form-text">This will be visible to all users immediately</div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-warning">
+                            <i class="bi bi-megaphone"></i> Send Broadcast
+                        </button>
+                        <a href="{{ url_for('messages_inbox') }}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tips Card -->
+        <div class="card bg-light mt-3">
+            <div class="card-body">
+                <h5 class="card-title">Broadcast Tips</h5>
+                <ul class="mb-0">
+                    <li>Use broadcasts for important announcements</li>
+                    <li>Keep messages concise and clear</li>
+                    <li>Consider the timing - send during business hours</li>
+                    <li>Use broadcasts sparingly to maintain impact</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

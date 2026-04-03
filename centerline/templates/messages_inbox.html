@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}Messages - Centerline{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h1 class="display-4">
+            <i class="bi bi-chat-dots"></i> Messages
+        </h1>
+    </div>
+</div>
+
+<!-- Broadcast Messages (for all users) -->
+{% if broadcasts %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="bi bi-megaphone"></i> Broadcast Messages</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for broadcast in broadcasts %}
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">
+                                <i class="bi bi-broadcast"></i> From: {{ broadcast.sender_name }}
+                            </h6>
+                            <small class="text-muted">{{ broadcast.sent_date|datetime }}</small>
+                        </div>
+                        <p class="mb-1">{{ broadcast.message_text }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row">
+    <!-- Conversations List -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-chat-left-text"></i> Direct Messages</h5>
+                <button class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#newMessageModal">
+                    <i class="bi bi-plus-lg"></i> New
+                </button>
+            </div>
+            <div class="card-body p-0">
+                {% if conversations %}
+                    <div class="list-group list-group-flush">
+                        {% for conv in conversations %}
+                        <a href="{{ url_for('conversation', other_user_id=conv.other_user_id) }}"
+                           class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">
+                                    {{ conv.username }}
+                                    {% if conv.client_name %}
+                                        <small class="text-muted">({{ conv.client_name }})</small>
+                                    {% endif %}
+                                </h6>
+                                <small class="text-muted">{{ conv.last_message_date|datetime }}</small>
+                            </div>
+                            {% if conv.unread_count > 0 %}
+                                <span class="badge bg-danger">{{ conv.unread_count }} new</span>
+                            {% endif %}
+                        </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="card-body text-center text-muted">
+                        <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                        <p class="mt-2">No conversations yet</p>
+                        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#newMessageModal">
+                            Start a conversation
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Group Chats -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-people-fill"></i> Group Chats</h5>
+                <a href="{{ url_for('create_group') }}" class="btn btn-sm btn-light">
+                    <i class="bi bi-plus-lg"></i> New Group
+                </a>
+            </div>
+            <div class="card-body p-0">
+                {% if groups %}
+                    <div class="list-group list-group-flush">
+                        {% for group in groups %}
+                        <a href="{{ url_for('group_chat', group_id=group.id) }}"
+                           class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">
+                                    <i class="bi bi-chat-square-dots"></i> {{ group.name }}
+                                </h6>
+                                {% if group.user_is_admin %}
+                                    <span class="badge bg-primary">Admin</span>
+                                {% endif %}
+                            </div>
+                            <small class="text-muted">
+                                {{ group.member_count }} members
+                                {% if group.description %}
+                                    - {{ group.description }}
+                                {% endif %}
+                            </small>
+                        </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="card-body text-center text-muted">
+                        <i class="bi bi-people" style="font-size: 3rem;"></i>
+                        <p class="mt-2">Not in any groups yet</p>
+                        <a href="{{ url_for('create_group') }}" class="btn btn-sm btn-success">
+                            Create a group
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Message Modal -->
+<div class="modal fade" id="newMessageModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">New Message</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('send_message') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="recipient_id" class="form-label">To:</label>
+                        <select class="form-select" id="recipient_id" name="recipient_id" required>
+                            <option value="">Select recipient...</option>
+                            {% for user in (conversations + []) %}
+                                <option value="{{ user.other_user_id }}">{{ user.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="message_text" class="form-label">Message:</label>
+                        <textarea class="form-control" id="message_text" name="message_text"
+                                  rows="4" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Send</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

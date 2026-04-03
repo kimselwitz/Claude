@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Conversation with {{ other_user.username }} - Centerline{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-md-12">
+        <a href="{{ url_for('messages_inbox') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i> Back to Messages
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-chat-left-text"></i> Conversation with {{ other_user.username }}
+                    {% if other_user.client_name %}
+                        <small>({{ other_user.client_name }})</small>
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+                {% if messages %}
+                    {% for message in messages %}
+                    <div class="mb-3 {% if message.sender_id == session.user_id %}text-end{% endif %}">
+                        <div class="d-inline-block p-3 rounded {% if message.sender_id == session.user_id %}bg-primary text-white{% else %}bg-light{% endif %}"
+                             style="max-width: 70%;">
+                            <small class="d-block mb-1">
+                                <strong>{{ message.sender_name }}</strong>
+                                <span class="{% if message.sender_id == session.user_id %}text-white-50{% else %}text-muted{% endif %}">
+                                    - {{ message.sent_date|datetime }}
+                                </span>
+                            </small>
+                            <div>{{ message.message_text }}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center text-muted">
+                        <i class="bi bi-chat" style="font-size: 3rem;"></i>
+                        <p class="mt-2">No messages yet. Start the conversation!</p>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="card-footer">
+                <form method="POST" action="{{ url_for('send_message') }}">
+                    <input type="hidden" name="recipient_id" value="{{ other_user.id }}">
+                    <div class="input-group">
+                        <textarea class="form-control" name="message_text"
+                                  placeholder="Type your message..." rows="2" required></textarea>
+                        <button class="btn btn-primary" type="submit">
+                            <i class="bi bi-send"></i> Send
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

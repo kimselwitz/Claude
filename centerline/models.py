@@ -62,6 +62,64 @@ class Database:
             )
         ''')
 
+        # Create Users table for authentication and messaging
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                client_id INTEGER,
+                role TEXT NOT NULL DEFAULT 'client',
+                created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (client_id) REFERENCES clients(id)
+            )
+        ''')
+
+        # Create Chat Groups table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS chat_groups (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                description TEXT,
+                is_broadcast BOOLEAN NOT NULL DEFAULT 0,
+                created_by INTEGER NOT NULL,
+                created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (created_by) REFERENCES users(id)
+            )
+        ''')
+
+        # Create Group Members table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS group_members (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                group_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                joined_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                is_admin BOOLEAN NOT NULL DEFAULT 0,
+                FOREIGN KEY (group_id) REFERENCES chat_groups(id),
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                UNIQUE(group_id, user_id)
+            )
+        ''')
+
+        # Create Messages table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                sender_id INTEGER NOT NULL,
+                recipient_id INTEGER,
+                group_id INTEGER,
+                message_text TEXT NOT NULL,
+                is_broadcast BOOLEAN NOT NULL DEFAULT 0,
+                is_read BOOLEAN NOT NULL DEFAULT 0,
+                sent_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (sender_id) REFERENCES users(id),
+                FOREIGN KEY (recipient_id) REFERENCES users(id),
+                FOREIGN KEY (group_id) REFERENCES chat_groups(id)
+            )
+        ''')
+
         conn.commit()
         conn.close()
 
@@ -264,3 +322,373 @@ class Transaction:
         conn.commit()
         conn.close()
         return transaction_id
+
+
+class User:
+    """User model for authentication and messaging"""
+
+    def __init__(self, db: Database):
+        self.db = db
+
+    def get_all(self) -> List[Dict]:
+        """Get all users"""
+        conn = self.db.get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            SELECT u.*, c.name as client_name
+            FROM users u
+            LEFT JOIN clients c ON u.client_id = c.id
+            ORDER BY u.username
+        ''')
+
+        users = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return users
+
+    def get_by_id(self, user_id: int) -> Optional[Dict]:
+        """Get user by ID"""
+        conn = self.db.get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            SELECT u.*, c.name as client_name
+            FROM users u
+            LEFT JOIN clients c ON u.client_id = c.id
+            WHERE u.id = ?
+        ''', (user_id,))
+        row = cursor.fetchone()
+        conn.close()
+
+        return dict(row) if row else None
+
+    def get_by_username(self, username: str) -> Optional[Dict]:
+        """Get user by username"""
+        conn = self.db.get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('SELECT * FROM users WHERE username = ?', (username,))
+        row = cursor.fetchone()
+        conn.close()
+
+        return dict(row) if row else None
+
+    def create(self, username: str, password: str, role: str = 'client',
+               client_id: Optional[int] = None) -> int:
+        """Create new user (password should be pre-hashed)"""
+        conn = self.db.get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            INSERT INTO users (username, password_hash, role, client_id)
+            VALUES (?, ?, ?, ?)
+        ''', (username, password, role, client_id))
+
+        user_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        return user_id
+
+    def update_last_seen(self, user_id: int):
+        """Update last seen timestamp"""
+        conn = self.db.get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            UPDATE users SET last_seen = CURRENT_TIMESTAMP WHERE id = ?
+        ''', (user_id,))
+
+        conn.commit()
+        conn.close()
+
+    def is_admin(self, user_id: int) -> bool:
+        """Check if user is admin"""
+        user = self.get_by_id(user_id)
+        return user and user['role'] == 'admin'
+
+
+class ChatGroup:
+    """Chat group model"""
+
+    def __init__(self, db: Database):
+        self.db = db
+
+    def get_all(self) -> List[Dict]:
+        """Get all chat groups"""
+        conn = self.db.get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            SELECT cg.*, u.username as creator_name,
+                   COUNT(DISTINCT gm.user_id) as member_count
+            FROM chat_groups cg
+            JOIN users u ON cg.created_by = u.id
+            LEFT JOIN group_members gm ON cg.id = gm.group_id
+            GROUP BY cg.id
+            ORDER BY cg.created_date DESC
+        ''')
+
+        groups = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return groups
+
+    def get_by_id(self, group_id: int) -> Optional[Dict]:
+        """Get chat group by ID"""
+        conn = self.db.get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            SELECT cg.*, u.username as creator_name
+            FROM chat_groups cg
+            JOIN users u ON cg.created_by = u.id
+            WHERE cg.id = ?
+        ''', (group_id,))
+        row = cursor.fetchone()
+        conn.close()
+
+        return dict(row) if row else None
+
+    def get_user_groups(self, user_id: int) -> List[Dict]:
+        """Get all groups user is a member of"""
+        conn = self.db.get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            SELECT cg.*, gm.is_admin as user_is_admin,
+                   COUNT(DISTINCT gm2.user_id) as member_count
+            FROM chat_groups cg
+            JOIN group_members gm ON cg.id = gm.group_id
+            LEFT JOIN group_members gm2 ON cg.id = gm2.group_id
+            WHERE gm.user_id = ?
+            GROUP BY cg.id
+            ORDER BY cg.name
+        ''', (user_id,))
+
+        groups = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return groups
+
+    def create(self, name: str, created_by: int, description: str = '',
+               is_broadcast: bool = False) -> int:
+        """Create new chat group"""
+        conn = self.db.get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            INSERT INTO chat_groups (name, description, is_broadcast, created_by)
+            VALUES (?, ?, ?, ?)
+        ''', (name, description, is_broadcast, created_by))
+
+        group_id = cursor.lastrowid
+
+        # Add creator as admin member
+        cursor.execute('''
+            INSERT INTO group_members (group_id, user_id, is_admin)
+            VALUES (?, ?, 1)
+        ''', (group_id, created_by))
+
+        conn.commit()
+        conn.close()
+        return group_id
+
+    def add_member(self, group_id: int, user_id: int, is_admin: bool = False):
+        """Add member to group"""
+        conn = self.db.get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            INSERT OR IGNORE INTO group_members (group_id, user_id, is_admin)
+            VALUES (?, ?, ?)
+        ''', (group_id, user_id, is_admin))
+
+        conn.commit()
+        conn.close()
+
+    def remove_member(self, group_id: int, user_id: int):
+        """Remove member from group"""
+        conn = self.db.get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            DELETE FROM group_members WHERE group_id = ? AND user_id = ?
+        ''', (group_id, user_id))
+
+        conn.commit()
+        conn.close()
+
+    def get_members(self, group_id: int) -> List[Dict]:
+        """Get all members of a group"""
+        conn = self.db.get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            SELECT u.id, u.username, u.role, gm.is_admin, gm.joined_date,
+                   c.name as client_name
+            FROM group_members gm
+            JOIN users u ON gm.user_id = u.id
+            LEFT JOIN clients c ON u.client_id = c.id
+            WHERE gm.group_id = ?
+            ORDER BY gm.is_admin DESC, u.username
+        ''', (group_id,))
+
+        members = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return members
+
+
+class Message:
+    """Message model"""
+
+    def __init__(self, db: Database):
+        self.db = db
+
+    def create(self, sender_id: int, message_text: str,
+               recipient_id: Optional[int] = None,
+               group_id: Optional[int] = None,
+               is_broadcast: bool = False) -> int:
+        """Create new message"""
+        conn = self.db.get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            INSERT INTO messages (sender_id, recipient_id, group_id, message_text, is_broadcast)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (sender_id, recipient_id, group_id, message_text, is_broadcast))
+
+        message_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        return message_id
+
+    def get_direct_messages(self, user1_id: int, user2_id: int) -> List[Dict]:
+        """Get direct messages between two users"""
+        conn = self.db.get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            SELECT m.*,
+                   s.username as sender_name,
+                   r.username as recipient_name
+            FROM messages m
+            JOIN users s ON m.sender_id = s.id
+            LEFT JOIN users r ON m.recipient_id = r.id
+            WHERE m.group_id IS NULL
+              AND ((m.sender_id = ? AND m.recipient_id = ?)
+                   OR (m.sender_id = ? AND m.recipient_id = ?))
+            ORDER BY m.sent_date ASC
+        ''', (user1_id, user2_id, user2_id, user1_id))
+
+        messages = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return messages
+
+    def get_group_messages(self, group_id: int, limit: int = 100) -> List[Dict]:
+        """Get messages for a group"""
+        conn = self.db.get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            SELECT m.*, u.username as sender_name
+            FROM messages m
+            JOIN users u ON m.sender_id = u.id
+            WHERE m.group_id = ?
+            ORDER BY m.sent_date DESC
+            LIMIT ?
+        ''', (group_id, limit))
+
+        messages = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return list(reversed(messages))  # Return in chronological order
+
+    def get_broadcasts(self, limit: int = 50) -> List[Dict]:
+        """Get broadcast messages"""
+        conn = self.db.get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            SELECT m.*, u.username as sender_name
+            FROM messages m
+            JOIN users u ON m.sender_id = u.id
+            WHERE m.is_broadcast = 1
+            ORDER BY m.sent_date DESC
+            LIMIT ?
+        ''', (limit,))
+
+        messages = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return messages
+
+    def get_user_conversations(self, user_id: int) -> List[Dict]:
+        """Get list of users that have conversations with this user"""
+        conn = self.db.get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            SELECT DISTINCT
+                CASE
+                    WHEN m.sender_id = ? THEN m.recipient_id
+                    ELSE m.sender_id
+                END as other_user_id,
+                u.username,
+                c.name as client_name,
+                MAX(m.sent_date) as last_message_date,
+                COUNT(CASE WHEN m.recipient_id = ? AND m.is_read = 0 THEN 1 END) as unread_count
+            FROM messages m
+            JOIN users u ON (
+                CASE
+                    WHEN m.sender_id = ? THEN m.recipient_id
+                    ELSE m.sender_id
+                END = u.id
+            )
+            LEFT JOIN clients c ON u.client_id = c.id
+            WHERE (m.sender_id = ? OR m.recipient_id = ?)
+              AND m.group_id IS NULL
+              AND m.is_broadcast = 0
+            GROUP BY other_user_id
+            ORDER BY last_message_date DESC
+        ''', (user_id, user_id, user_id, user_id, user_id))
+
+        conversations = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return conversations
+
+    def mark_as_read(self, message_id: int):
+        """Mark message as read"""
+        conn = self.db.get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            UPDATE messages SET is_read = 1 WHERE id = ?
+        ''', (message_id,))
+
+        conn.commit()
+        conn.close()
+
+    def mark_conversation_as_read(self, user_id: int, other_user_id: int):
+        """Mark all messages in a conversation as read"""
+        conn = self.db.get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            UPDATE messages
+            SET is_read = 1
+            WHERE sender_id = ? AND recipient_id = ? AND is_read = 0
+        ''', (other_user_id, user_id))
+
+        conn.commit()
+        conn.close()
+
+    def get_unread_count(self, user_id: int) -> int:
+        """Get count of unread messages for user"""
+        conn = self.db.get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            SELECT COUNT(*) as count
+            FROM messages
+            WHERE recipient_id = ? AND is_read = 0
+        ''', (user_id,))
+
+        result = cursor.fetchone()
+        conn.close()
+        return result['count'] if result else 0
