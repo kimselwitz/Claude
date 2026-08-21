@@ -1,6 +1,6 @@
-# 🧠 ADHD Event Tracker
+# 🧠 Productivity Tracker
 
-A simple, distraction-free web application designed specifically for people with ADHD to keep track of important life events, messages, social media posts, achievements, and more.
+A simple, distraction-free web application designedto keep track of important life events, messages, social media posts, achievements, and more.
 
 ## Features
 
