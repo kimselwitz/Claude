@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Message templates &middot; Doorway{% endblock %}
+{% block content %}
+<h1>Message templates</h1>
+<p class="sub">One message, one body per language. A participant always gets the version in their own language when it exists.</p>
+
+<div class="card">
+  <h2>Templates <a class="btn small" href="{{ url_for('template_new') }}">New template</a></h2>
+  <table class="responsive">
+    <thead><tr><th>Name</th><th>Code</th><th>Used for</th><th>Languages</th></tr></thead>
+    <tbody>
+      {% for template in templates %}
+      <tr>
+        <td><a href="{{ url_for('template_edit', template_id=template.id) }}">{{ template.name }}</a></td>
+        <td><code>{{ template.code }}</code></td>
+        <td>{{ template.category.replace('_', ' ') }}</td>
+        <td>
+          {% set count = coverage[template.id] %}
+          <span class="tag {{ 'ok' if count == total_languages else 'warn' }}">{{ count }} of {{ total_languages }}</span>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="banner">Translations that ship with Doorway are starter text. Have your own interpreter review each one before a pilot goes live &mdash; language access is a legal obligation, not a nice-to-have.</div>
+{% endblock %}

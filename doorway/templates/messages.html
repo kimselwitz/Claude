@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Messages &middot; Doorway{% endblock %}
+{% block content %}
+<h1>Messages</h1>
+<p class="sub">Every text in and out, with why anything failed. Sending is via the <strong>{{ provider_name }}</strong> provider.</p>
+
+<div class="tabs">
+  <a href="{{ url_for('message_log') }}" class="{{ 'active' if not direction and not status }}">All</a>
+  <a href="{{ url_for('message_log', direction='out') }}" class="{{ 'active' if direction == 'out' }}">Outgoing</a>
+  <a href="{{ url_for('message_log', direction='in') }}" class="{{ 'active' if direction == 'in' }}">Replies</a>
+  <a href="{{ url_for('message_log', status='failed') }}" class="{{ 'active' if status == 'failed' }}">Failed</a>
+  <a href="{{ url_for('message_log', status='held') }}" class="{{ 'active' if status == 'held' }}">Held for quiet hours</a>
+  {% if pending_messages %}
+  <form method="post" action="{{ url_for('messages_dispatch') }}" class="inline" style="margin-left:auto">
+    <button class="small" type="submit">Send {{ pending_messages }} waiting</button>
+  </form>
+  {% endif %}
+</div>
+
+{% if replies %}
+<div class="card">
+  <h2>Replies with no answer yet</h2>
+  {% for row in replies %}
+  <p style="margin:0 0 8px">
+    <a href="{{ url_for('participant_detail', contact_id=row.contact_id) }}">{{ row.first_name }} {{ row.last_name }}</a>
+    <span class="hint">&ldquo;{{ row.body|truncate(120) }}&rdquo; &middot; {{ row.created_at|datetime }}</span>
+  </p>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="card">
+  {% if messages %}
+  <table class="responsive">
+    <thead><tr><th>When</th><th>Participant</th><th>Message</th><th>Status</th></tr></thead>
+    <tbody>
+      {% for message in messages %}
+      <tr>
+        <td style="white-space:nowrap">{{ message.created_at|datetime }}</td>
+        <td><a href="{{ url_for('participant_detail', contact_id=message.contact_id) }}">{{ message.first_name }} {{ message.last_name }}</a>
+          <div class="hint">{{ message.direction == 'out' and 'to' or 'from' }} {{ message.phone|phone }}</div>
+        </td>
+        <td {{ 'dir=rtl' if message.language == 'ar' }}>{{ message.body }}
+          <div class="hint">{{ message.language|lang }}{% if message.template_code %} &middot; {{ message.template_code }}{% endif %}</div>
+        </td>
+        <td>
+          <span class="tag {{ 'bad' if message.status == 'failed' else ('ok' if message.status in ['sent', 'received'] else 'warn') }}">{{ message.status }}</span>
+          {% if message.status == 'held' %}<div class="hint">until {{ message.scheduled_for|datetime }}</div>{% endif %}
+          {% if message.error %}<div class="hint" style="color:var(--bad)">{{ message.error }}</div>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="empty">No messages yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

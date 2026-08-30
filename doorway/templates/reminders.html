@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Reminders &middot; Doorway{% endblock %}
+{% block content %}
+<h1>Reminder rules</h1>
+<p class="sub">Rules run once per document request, so nobody gets the same nudge twice.</p>
+
+<div class="split">
+  <div>
+    <div class="card">
+      <h2>Rules</h2>
+      <table class="responsive">
+        <thead><tr><th>When</th><th>Rule</th><th>Message</th><th>Sent</th><th></th></tr></thead>
+        <tbody>
+          {% for rule in rules %}
+          <tr {{ 'style=opacity:.55' if not rule.active }}>
+            <td><strong>{{ describe(rule.offset_days) }}</strong><div class="hint">the due date</div></td>
+            <td>{{ rule.name }}</td>
+            <td>{{ rule.template_name or rule.template_code }}</td>
+            <td>{{ rule.fired }}</td>
+            <td style="text-align:right">
+              <form method="post" action="{{ url_for('reminder_toggle', rule_id=rule.id) }}" class="inline">
+                <input type="hidden" name="active" value="{{ 0 if rule.active else 1 }}">
+                <button class="small secondary" type="submit">{{ 'Pause' if rule.active else 'Resume' }}</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Due to go out now
+        <form method="post" action="{{ url_for('reminders_run') }}" class="inline">
+          <button type="submit" {{ 'disabled' if not preview }}>Run reminders</button>
+        </form>
+      </h2>
+      {% if preview %}
+        <p class="hint">A preview of exactly what would be sent if you run the rules right now.</p>
+        {% for row in preview %}
+        <div style="border-bottom:1px solid var(--line);padding:8px 0">
+          <strong>{{ row.contact }}</strong>
+          {% if row.status == 'queued' %}
+            <span class="tag ok">{{ row.language|lang }}</span>
+            <div class="hint">{{ row.preview }}</div>
+          {% else %}
+            <span class="tag warn">skipped</span>
+            <div class="hint">{{ row.reason }}</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      {% else %}
+        <p class="empty">Nothing due today. Rules are checked against each request's due date.</p>
+      {% endif %}
+      <p class="hint" style="margin-top:12px">Run this on a schedule instead of by hand:
+        <code>python jobs.py run --org {{ g.org.id }}</code> from cron, once each morning.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Add a rule</h2>
+    <form method="post" action="{{ url_for('reminder_new') }}">
+      <div class="field">
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" placeholder="Three days out" required>
+      </div>
+      <div class="field">
+        <label for="template_code">Message to send</label>
+        <select id="template_code" name="template_code" required>
+          {% for template in templates %}
+          <option value="{{ template.code }}">{{ template.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="offset_days">Days before the due date</label>
+        <input type="number" id="offset_days" name="offset_days" value="3" required>
+        <div class="hint">Use 0 for the due date itself and a negative number for follow-ups after it (-2 means two days late).</div>
+      </div>
+      <button type="submit">Add rule</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

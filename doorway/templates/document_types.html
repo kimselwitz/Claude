@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Documents &middot; Doorway{% endblock %}
+{% block content %}
+<h1>Document list</h1>
+<p class="sub">The things you ask participants for. Wording here is what they see in the text message.</p>
+
+<div class="split">
+  <div class="card">
+    <table class="responsive">
+      <thead><tr><th>Document</th><th>Description</th><th></th></tr></thead>
+      <tbody>
+        {% for document in document_types %}
+        <tr {{ 'style=opacity:.55' if not document.active }}>
+          <td>{{ document.name }}
+            <div class="hint">
+              {% set translated = coverage.get(document.id, 0) %}
+              <a href="{{ url_for('document_type_names', type_id=document.id) }}">
+                <span class="tag {{ 'ok' if translated == total_languages else 'warn' }}">{{ translated }} of {{ total_languages }} translations</span>
+              </a>
+            </div>
+          </td>
+          <td class="hint">{{ document.description or '' }}</td>
+          <td style="text-align:right">
+            <form method="post" action="{{ url_for('document_type_toggle', type_id=document.id) }}" class="inline">
+              <input type="hidden" name="active" value="{{ 0 if document.active else 1 }}">
+              <button class="small secondary" type="submit">{{ 'Retire' if document.active else 'Restore' }}</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card">
+    <h2>Add a document</h2>
+    <form method="post">
+      <div class="field">
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" required>
+      </div>
+      <div class="field">
+        <label for="description">Description</label>
+        <input type="text" id="description" name="description" placeholder="What counts as acceptable proof">
+      </div>
+      <button type="submit">Add</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

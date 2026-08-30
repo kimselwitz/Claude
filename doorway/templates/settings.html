@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Settings &middot; Doorway{% endblock %}
+{% block content %}
+<h1>Settings</h1>
+<p class="sub">Agency details, quiet hours, and the audit trail.</p>
+
+<div class="split">
+  <div>
+    <form method="post" class="card">
+      <h2>Agency</h2>
+      <div class="field">
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" value="{{ g.org.name }}">
+        <div class="hint">Appears at the start of every text so participants know who is contacting them.</div>
+      </div>
+      <div class="grid cols-2">
+        <div class="field">
+          <label for="sms_from">Sending number</label>
+          <input type="text" id="sms_from" name="sms_from" value="{{ g.org.sms_from or '' }}" placeholder="+12075550100">
+        </div>
+        <div class="field">
+          <label for="timezone">Time zone</label>
+          <input type="text" id="timezone" name="timezone" value="{{ g.org.timezone }}">
+        </div>
+        <div class="field">
+          <label for="quiet_start">Quiet hours start</label>
+          <input type="number" id="quiet_start" name="quiet_start" min="0" max="23" value="{{ g.org.quiet_start }}">
+        </div>
+        <div class="field">
+          <label for="quiet_end">Quiet hours end</label>
+          <input type="number" id="quiet_end" name="quiet_end" min="0" max="23" value="{{ g.org.quiet_end }}">
+        </div>
+      </div>
+      <p class="hint">Messages created inside quiet hours are held and sent at {{ g.org.quiet_end }}:00. Nothing goes out overnight, whoever clicks send.</p>
+      <button type="submit" {{ 'disabled' if g.user.role != 'admin' }}>Save</button>
+      {% if g.user.role != 'admin' %}<span class="hint">Only an admin can change agency settings.</span>{% endif %}
+    </form>
+
+    <div class="card">
+      <h2>Recent activity</h2>
+      <table class="responsive">
+        <tbody>
+          {% for row in audit %}
+          <tr>
+            <td style="white-space:nowrap">{{ row.created_at|datetime }}</td>
+            <td>{{ row.full_name or 'system' }}</td>
+            <td>{{ row.action }}<div class="hint">{{ row.detail or '' }}</div></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <h2>Text messaging</h2>
+      <p>Provider: <strong>{{ provider_name }}</strong></p>
+      {% if provider_name == 'console' %}
+      <p class="hint">Nothing is leaving the building. Messages move through the full consent, quiet-hours, and queue path and land in the message log &mdash; which is what you want for a demo or a dry run.</p>
+      <p class="hint">To send for real, set <code>DOORWAY_SMS_PROVIDER=twilio</code> plus <code>TWILIO_ACCOUNT_SID</code>, <code>TWILIO_AUTH_TOKEN</code>, and <code>TWILIO_FROM</code>, then point the carrier's inbound webhook at <code>/sms/inbound</code>.</p>
+      {% endif %}
+    </div>
+    <div class="card">
+      <h2>What Doorway will not store</h2>
+      <p class="hint">Doorway holds contact details, document status, and message history. It does not hold income, assets, household composition, or anything else from form HUD-50058, and it never submits to HUD. Your system of record stays the system of record.</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

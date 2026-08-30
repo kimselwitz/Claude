@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}{{ participant.first_name }} {{ participant.last_name }} &middot; Doorway{% endblock %}
+{% block content %}
+<h1>{{ participant.first_name }} {{ participant.last_name }}</h1>
+<p class="sub">
+  {{ participant.phone|phone or 'No phone on file' }} &middot; {{ participant.preferred_language|lang }}
+  {% if participant.program %} &middot; {{ participant.program }}{% endif %}
+  {% if participant.external_ref %} &middot; {{ participant.external_ref }}{% endif %}
+  &middot; <a href="{{ url_for('participant_edit', contact_id=participant.id) }}">Edit</a>
+</p>
+
+{% if reachable %}
+  <div class="banner">Reachable by text. Consent recorded {{ participant.consent_at|shortdate }}.</div>
+{% else %}
+  <div class="banner warn"><strong>Not textable:</strong> {{ reason }}.
+    {% if not participant.consent_sms and not participant.opted_out %}
+      <a href="{{ url_for('participant_edit', contact_id=participant.id) }}">Record consent</a> once they have agreed.
+    {% endif %}
+  </div>
+{% endif %}
+
+<div class="split">
+  <div>
+    <div class="card">
+      <h2>Documents
+        <a class="btn small" href="{{ url_for('request_new', contact_id=participant.id) }}">Request documents</a>
+      </h2>
+      {% if requests %}
+      <table class="responsive">
+        <thead><tr><th>Document</th><th>Due</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          {% for row in requests %}
+          <tr>
+            <td>{{ row.document_name }}{% if row.notes %}<div class="hint">{{ row.notes }}</div>{% endif %}</td>
+            <td style="white-space:nowrap">
+              {{ row.due_date|shortdate }}
+              {% if row.status == 'open' and row.days_until_due < 0 %}
+                <div><span class="tag bad">{{ (-row.days_until_due)|round|int }} days late</span></div>
+              {% elif row.status == 'open' and row.days_until_due <= 7 %}
+                <div><span class="tag warn">due soon</span></div>
+              {% endif %}
+            </td>
+            <td><span class="tag {{ 'ok' if row.status in ['received', 'verified'] }}">{{ status_labels[row.status] }}</span></td>
+            <td style="text-align:right;white-space:nowrap">
+              {% if row.status == 'open' %}
+              <form method="post" action="{{ url_for('request_nudge', request_id=row.id) }}" class="inline">
+                <input type="hidden" name="next" value="{{ url_for('participant_detail', contact_id=participant.id) }}">
+                <button class="small secondary" type="submit">Remind</button>
+              </form>
+              <form method="post" action="{{ url_for('request_status', request_id=row.id) }}" class="inline">
+                <input type="hidden" name="status" value="received">
+                <input type="hidden" name="thank_them" value="1">
+                <input type="hidden" name="next" value="{{ url_for('participant_detail', contact_id=participant.id) }}">
+                <button class="small" type="submit">Mark received</button>
+              </form>
+              {% else %}
+              <form method="post" action="{{ url_for('request_status', request_id=row.id) }}" class="inline">
+                <input type="hidden" name="status" value="open">
+                <input type="hidden" name="next" value="{{ url_for('participant_detail', contact_id=participant.id) }}">
+                <button class="small secondary" type="submit">Reopen</button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="empty">No documents requested yet.</p>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <h2>Message history</h2>
+      {% if thread %}
+      <div class="thread">
+        {% for message in thread|reverse %}
+        <div class="bubble {{ 'out' if message.direction == 'out' else 'in' }} {{ 'rtl' if message.language == 'ar' }}">
+          {{ message.body }}
+          <div class="meta">
+            {{ message.created_at|datetime }} &middot; {{ message.language|lang }} &middot; {{ message.status }}
+            {% if message.error %} &middot; <span style="color:var(--bad)">{{ message.error }}</span>{% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="empty">No messages yet.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <h2>Send a message</h2>
+      <form method="post" action="{{ url_for('participant_message', contact_id=participant.id) }}">
+        <div class="field">
+          <label for="template_code">Use a template</label>
+          <select id="template_code" name="template_code">
+            <option value="">-- write my own --</option>
+            {% for template in templates %}
+            <option value="{{ template.code }}">{{ template.name }}</option>
+            {% endfor %}
+          </select>
+          <div class="hint">Sends in {{ participant.preferred_language|lang }} when that translation exists, otherwise English.</div>
+        </div>
+        <div class="field">
+          <label for="request_id">About which document?</label>
+          <select id="request_id" name="request_id">
+            <option value="">-- not about a specific document --</option>
+            {% for row in requests if row.status == 'open' %}
+            <option value="{{ row.id }}">{{ row.document_name }} (due {{ row.due_date|shortdate }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="body">Or type a message</label>
+          <textarea id="body" name="body" placeholder="Written in the participant's language -- Doorway does not translate free text."></textarea>
+        </div>
+        <button type="submit" {{ 'disabled' if not reachable }}>Send</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Consent</h2>
+      {% if participant.opted_out %}
+        <p>Opted out {{ participant.opted_out_at|shortdate }}. No messages will be sent.</p>
+        <form method="post" action="{{ url_for('participant_opt_out', contact_id=participant.id) }}">
+          <input type="hidden" name="opted_out" value="0">
+          <button class="secondary small" type="submit">Re-subscribe (only with their permission)</button>
+        </form>
+      {% else %}
+        <p class="hint">A participant can stop messages at any time by replying STOP. Staff can also record it here.</p>
+        <form method="post" action="{{ url_for('participant_opt_out', contact_id=participant.id) }}">
+          <input type="hidden" name="opted_out" value="1">
+          <button class="secondary small" type="submit">Record opt-out</button>
+        </form>
+      {% endif %}
+    </div>
+
+    {% if provider_name == 'console' and participant.phone %}
+    <div class="card">
+      <h2>Demo: simulate a reply</h2>
+      <p class="hint">No carrier is connected, so nothing real is sent. Use this to show the inbound path, including STOP handling.</p>
+      <form method="post" action="{{ url_for('simulate_inbound') }}">
+        <input type="hidden" name="contact_id" value="{{ participant.id }}">
+        <div class="field"><input type="text" name="body" placeholder="Sending the photo tonight" required></div>
+        <button class="secondary small" type="submit">Receive as inbound</button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

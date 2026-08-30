@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}New template &middot; Doorway{% endblock %}
+{% block content %}
+<h1>New template</h1>
+<form method="post" class="card">
+  <div class="field">
+    <label for="name">Name</label>
+    <input type="text" id="name" name="name" placeholder="Recertification appointment reminder" required>
+  </div>
+  <div class="field">
+    <label for="code">Code</label>
+    <input type="text" id="code" name="code" placeholder="recert_reminder" required>
+    <div class="hint">Short identifier used by reminder rules. Letters, numbers, and underscores.</div>
+  </div>
+  <div class="field">
+    <label for="category">Used for</label>
+    <select id="category" name="category">
+      <option value="document_request">Document requests</option>
+      <option value="general">General messages</option>
+    </select>
+  </div>
+  <button type="submit">Create and add translations</button>
+  <a class="btn secondary" href="{{ url_for('templates_list') }}">Cancel</a>
+</form>
+{% endblock %}

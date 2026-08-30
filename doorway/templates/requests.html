@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Documents &middot; Doorway{% endblock %}
+{% block content %}
+<h1>Document requests</h1>
+<p class="sub">Everything the agency is waiting on, oldest due date first.</p>
+
+<div class="tabs">
+  {% for key, label in [('open', 'Open'), ('overdue', 'Past due'), ('due_soon', 'Due this week'), ('closed', 'Closed'), ('all', 'All')] %}
+  <a href="{{ url_for('requests_list', scope=key) }}" class="{{ 'active' if scope == key }}">{{ label }}</a>
+  {% endfor %}
+  <a class="btn small" href="{{ url_for('request_new') }}" style="margin-left:auto">Request documents</a>
+</div>
+
+<div class="card">
+  {% if requests %}
+  <table class="responsive">
+    <thead><tr><th>Participant</th><th>Document</th><th>Due</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      {% for row in requests %}
+      <tr>
+        <td>
+          <a href="{{ url_for('participant_detail', contact_id=row.contact_id) }}">{{ row.first_name }} {{ row.last_name }}</a>
+          <div class="hint">{{ row.preferred_language|lang }}{% if row.opted_out %} &middot; opted out{% elif not row.consent_sms %} &middot; no consent{% endif %}</div>
+        </td>
+        <td>{{ row.document_name }}</td>
+        <td style="white-space:nowrap">
+          {{ row.due_date|shortdate }}
+          {% if row.status == 'open' and row.days_until_due < 0 %}
+            <div><span class="tag bad">{{ (-row.days_until_due)|round|int }} days late</span></div>
+          {% endif %}
+        </td>
+        <td><span class="tag {{ 'ok' if row.status in ['received', 'verified'] }}">{{ status_labels[row.status] }}</span></td>
+        <td style="text-align:right;white-space:nowrap">
+          {% if row.status == 'open' %}
+          <form method="post" action="{{ url_for('request_nudge', request_id=row.id) }}" class="inline">
+            <input type="hidden" name="next" value="{{ url_for('requests_list', scope=scope) }}">
+            <button class="small secondary" type="submit">Remind</button>
+          </form>
+          <form method="post" action="{{ url_for('request_status', request_id=row.id) }}" class="inline">
+            <input type="hidden" name="status" value="received">
+            <input type="hidden" name="thank_them" value="1">
+            <input type="hidden" name="next" value="{{ url_for('requests_list', scope=scope) }}">
+            <button class="small" type="submit">Received</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="empty">Nothing here.</p>
+  {% endif %}
+</div>
+{% endblock %}

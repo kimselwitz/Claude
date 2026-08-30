@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}{{ template.name }} &middot; Doorway{% endblock %}
+{% block content %}
+<h1>{{ template.name }}</h1>
+<p class="sub"><code>{{ template.code }}</code> &middot; {{ template.category.replace('_', ' ') }}</p>
+
+<div class="banner">
+  Merge fields available here:
+  {% for field in fields %}<code>{% raw %}{{{% endraw %}{{ field }}{% raw %}}}{% endraw %}</code>{% if not loop.last %} {% endif %}{% endfor %}
+  <br>Leave a language blank to fall back to English for participants who prefer it.
+</div>
+
+<form method="post">
+  {% for lang in languages %}
+  <div class="card">
+    <h2>{{ lang.code|lang }}
+      {% if stats.get(lang.code) %}
+        <span class="tag {{ 'warn' if stats[lang.code].segments > 1 else '' }}">
+          {{ stats[lang.code].units }} chars &middot; {{ stats[lang.code].encoding }} &middot;
+          {{ stats[lang.code].segments }} segment{{ '' if stats[lang.code].segments == 1 else 's' }}
+        </span>
+      {% endif %}
+    </h2>
+    <div class="field">
+      <textarea name="body_{{ lang.code }}" {{ 'dir=rtl' if lang.rtl }}>{{ variants.get(lang.code, '') }}</textarea>
+    </div>
+    {% if previews.get(lang.code) %}
+      <div class="hint"><strong>Preview:</strong> <span {{ 'dir=rtl' if lang.rtl }}>{{ previews[lang.code] }}</span></div>
+      {% if stats[lang.code].non_gsm %}
+      <div class="hint" style="color:var(--warn)">
+        Characters outside the basic SMS alphabet ({{ stats[lang.code].non_gsm|join(' ') }}) cut each segment from 160 to 70 characters, so this message costs more to send. That is often the right trade for a correct translation &mdash; just know you are making it.
+      </div>
+      {% endif %}
+    {% endif %}
+  </div>
+  {% endfor %}
+  <button type="submit">Save all languages</button>
+  <a class="btn secondary" href="{{ url_for('templates_list') }}">Back</a>
+</form>
+{% endblock %}

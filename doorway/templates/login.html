@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Sign in &middot; Doorway{% endblock %}
+{% block content %}
+<div class="login-wrap">
+  <h1>Doorway</h1>
+  <p class="sub">Participant messaging and document chasing.</p>
+  <div class="card">
+    <form method="post">
+      <div class="field">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" autofocus required>
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required>
+      </div>
+      <button type="submit">Sign in</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

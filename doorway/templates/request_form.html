@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Request documents &middot; Doorway{% endblock %}
+{% block content %}
+<h1>Request documents</h1>
+<p class="sub">Pick everything you need in one pass &mdash; each document is tracked separately so you can see exactly what is still missing.</p>
+
+<form method="post" class="card">
+  <div class="grid cols-2">
+    <div class="field">
+      <label for="contact_id">Participant</label>
+      <select id="contact_id" name="contact_id" required>
+        {% for person in participants %}
+        <option value="{{ person.id }}" {{ 'selected' if person.id == selected_contact }}>
+          {{ person.last_name }}, {{ person.first_name }}{% if person.external_ref %} ({{ person.external_ref }}){% endif %}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label for="due_date">Due date</label>
+      <input type="date" id="due_date" name="due_date" value="{{ default_due }}" required>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Documents needed</label>
+    <div class="grid cols-2">
+      {% for document in document_types %}
+      <label class="check">
+        <input type="checkbox" name="document_type_id" value="{{ document.id }}">
+        <span>{{ document.name }}{% if document.description %}<br><span class="hint">{{ document.description }}</span>{% endif %}</span>
+      </label>
+      {% endfor %}
+    </div>
+    <div class="hint" style="margin-top:8px"><a href="{{ url_for('document_types') }}">Manage the document list</a></div>
+  </div>
+
+  <div class="field">
+    <label for="notes">Note to staff (not sent to the participant)</label>
+    <input type="text" id="notes" name="notes">
+  </div>
+
+  <div class="field">
+    <label class="check">
+      <input type="checkbox" name="send_now" value="1" checked>
+      <span>Text the participant now in their language</span>
+    </label>
+  </div>
+
+  <button type="submit">Create requests</button>
+  <a class="btn secondary" href="{{ url_for('requests_list') }}">Cancel</a>
+</form>
+{% endblock %}

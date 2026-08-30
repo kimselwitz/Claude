@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Add' if action == 'new' else 'Edit' }} participant &middot; Doorway{% endblock %}
+{% block content %}
+<h1>{{ 'Add participant' if action == 'new' else 'Edit participant' }}</h1>
+<p class="sub">Contact information only. Do not record income, assets, or anything from form HUD-50058 here.</p>
+
+<form method="post" class="card">
+  <div class="grid cols-2">
+    <div class="field">
+      <label for="first_name">First name</label>
+      <input type="text" id="first_name" name="first_name" value="{{ participant.first_name or '' }}" required>
+    </div>
+    <div class="field">
+      <label for="last_name">Last name</label>
+      <input type="text" id="last_name" name="last_name" value="{{ participant.last_name or '' }}" required>
+    </div>
+    <div class="field">
+      <label for="phone">Mobile number</label>
+      <input type="tel" id="phone" name="phone" value="{{ participant.phone or '' }}" placeholder="(207) 555-0142">
+      <div class="hint">Texting only works with a mobile number.</div>
+    </div>
+    <div class="field">
+      <label for="email">Email (optional)</label>
+      <input type="email" id="email" name="email" value="{{ participant.email or '' }}">
+    </div>
+    <div class="field">
+      <label for="preferred_language">Preferred language</label>
+      <select id="preferred_language" name="preferred_language">
+        {% for lang in languages %}
+        <option value="{{ lang.code }}" {{ 'selected' if lang.code == (participant.preferred_language or 'en') }}>{{ lang.code|lang }}</option>
+        {% endfor %}
+      </select>
+      <div class="hint">Every message is sent in this language when a translation exists.</div>
+    </div>
+    <div class="field">
+      <label for="program">Program</label>
+      <input type="text" id="program" name="program" value="{{ participant.program or '' }}" placeholder="HCV waitlist, TBRA, housing counseling...">
+    </div>
+    <div class="field">
+      <label for="external_ref">File or applicant number</label>
+      <input type="text" id="external_ref" name="external_ref" value="{{ participant.external_ref or '' }}">
+      <div class="hint">Your own reference into the system of record. Doorway never writes back to it.</div>
+    </div>
+  </div>
+  <div class="field">
+    <label for="notes">Notes</label>
+    <textarea id="notes" name="notes">{{ participant.notes or '' }}</textarea>
+  </div>
+  <div class="field">
+    <label class="check">
+      <input type="checkbox" name="consent_sms" value="1" {{ 'checked' if participant.consent_sms }}>
+      <span>This participant agreed to receive text messages about their case.<br>
+      <span class="hint">Record consent only when they actually gave it &mdash; verbally, on an intake form, or in writing.</span></span>
+    </label>
+  </div>
+  {% if action == 'edit' %}
+  <div class="field">
+    <label class="check">
+      <input type="checkbox" name="active" value="1" {{ 'checked' if participant.active }}>
+      <span>Active caseload</span>
+    </label>
+  </div>
+  {% endif %}
+  <button type="submit">Save</button>
+  <a class="btn secondary" href="{{ url_for('participants') }}">Cancel</a>
+</form>
+{% endblock %}

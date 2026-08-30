@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Participants &middot; Doorway{% endblock %}
+{% block content %}
+<h1>Participants</h1>
+<p class="sub">{{ participants|length }} shown. Doorway stores contact details only &mdash; never income, assets, or 50058 data.</p>
+
+<form method="get" class="toolbar">
+  <div class="field" style="flex:1;min-width:200px">
+    <label for="q">Search</label>
+    <input type="text" id="q" name="q" value="{{ q }}" placeholder="Name, phone, or file number">
+  </div>
+  <div class="field">
+    <label for="language">Language</label>
+    <select id="language" name="language">
+      <option value="">All</option>
+      {% for lang in languages %}
+      <option value="{{ lang.code }}" {{ 'selected' if lang.code == language }}>{{ lang.code|lang }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <button type="submit" class="secondary">Filter</button>
+  <a class="btn" href="{{ url_for('participant_new') }}">Add participant</a>
+</form>
+
+<div class="card">
+  {% if participants %}
+  <table class="responsive">
+    <thead><tr><th>Name</th><th>Phone</th><th>Language</th><th>Program</th><th>Texting</th></tr></thead>
+    <tbody>
+      {% for person in participants %}
+      <tr>
+        <td>
+          <a href="{{ url_for('participant_detail', contact_id=person.id) }}">{{ person.last_name }}, {{ person.first_name }}</a>
+          {% if person.external_ref %}<div class="hint">{{ person.external_ref }}</div>{% endif %}
+        </td>
+        <td>{{ person.phone|phone }}</td>
+        <td>{{ person.preferred_language|lang }}</td>
+        <td>{{ person.program or '' }}</td>
+        <td>
+          {% if reach[person.id][0] %}
+            <span class="tag ok">Reachable</span>
+          {% else %}
+            <span class="tag {{ 'bad' if person.opted_out else 'warn' }}">{{ reach[person.id][1] }}</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="empty">No participants match. <a href="{{ url_for('participant_new') }}">Add one</a>.</p>
+  {% endif %}
+</div>
+{% endblock %}

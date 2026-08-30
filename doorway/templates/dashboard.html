@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Dashboard &middot; Doorway{% endblock %}
+{% block content %}
+<h1>Today</h1>
+<p class="sub">What is outstanding, who to chase, and who replied.</p>
+
+<div class="grid cols-4">
+  <div class="metric {{ 'bad' if metrics.overdue_requests }}">
+    <div class="value">{{ metrics.overdue_requests }}</div>
+    <div class="label">Past due</div>
+    <div class="note">{{ metrics.open_requests }} open in total</div>
+  </div>
+  <div class="metric">
+    <div class="value">{{ metrics.due_soon }}</div>
+    <div class="label">Due this week</div>
+    <div class="note">Next 7 days</div>
+  </div>
+  <div class="metric ok">
+    <div class="value">{{ metrics.median_days_to_receipt if metrics.median_days_to_receipt is not none else '--' }}</div>
+    <div class="label">Median days to receipt</div>
+    <div class="note">{{ metrics.completed_90d }} completed in 90 days</div>
+  </div>
+  <div class="metric">
+    <div class="value">{{ metrics.reply_rate if metrics.reply_rate is not none else '--' }}{% if metrics.reply_rate is not none %}%{% endif %}</div>
+    <div class="label">Reply rate</div>
+    <div class="note">{{ metrics.messages_sent_30d }} sent / {{ metrics.replies_30d }} replies, 30 days</div>
+  </div>
+</div>
+
+<div class="grid cols-3" style="margin-top:14px">
+  <div class="metric">
+    <div class="value">{{ metrics.reachable }}<span style="font-size:15px;color:var(--muted)">/{{ metrics.participants }}</span></div>
+    <div class="label">Reachable by text</div>
+    <div class="note">{{ metrics.reachable_pct if metrics.reachable_pct is not none else 0 }}% have a number, consent, and no opt-out</div>
+  </div>
+  <div class="metric">
+    <div class="value">{{ metrics.non_english }}</div>
+    <div class="label">Non-English preferred</div>
+    <div class="note">
+      {% for row in metrics.by_language %}{{ row.preferred_language|lang }} {{ row.n }}{% if not loop.last %} &middot; {% endif %}{% endfor %}
+    </div>
+  </div>
+  <div class="metric {{ 'bad' if metrics.failed_30d }}">
+    <div class="value">{{ metrics.pending_messages }}</div>
+    <div class="label">Waiting to send</div>
+    <div class="note">{{ metrics.failed_30d }} failed in 30 days</div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:18px">
+  <h2>Chase list &mdash; past due
+    <a class="btn small secondary" href="{{ url_for('requests_list', scope='overdue') }}">See all</a>
+  </h2>
+  {% if chase_list %}
+  <table class="responsive">
+    <thead><tr><th>Participant</th><th>Document</th><th>Due</th><th>Language</th><th></th></tr></thead>
+    <tbody>
+      {% for row in chase_list %}
+      <tr>
+        <td><a href="{{ url_for('participant_detail', contact_id=row.contact_id) }}">{{ row.first_name }} {{ row.last_name }}</a></td>
+        <td>{{ row.document_name }}</td>
+        <td><span class="tag bad">{{ (-row.days_until_due)|round|int }} days late</span></td>
+        <td>{{ row.preferred_language|lang }}</td>
+        <td style="text-align:right">
+          <form method="post" action="{{ url_for('request_nudge', request_id=row.id) }}" class="inline">
+            <input type="hidden" name="next" value="{{ url_for('dashboard') }}">
+            <button class="small" type="submit">Send reminder</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="empty">Nothing past due. That is the goal.</p>
+  {% endif %}
+</div>
+
+<div class="split">
+  <div class="card">
+    <h2>Due in the next 7 days</h2>
+    {% if due_soon %}
+    <table class="responsive">
+      <tbody>
+        {% for row in due_soon %}
+        <tr>
+          <td><a href="{{ url_for('participant_detail', contact_id=row.contact_id) }}">{{ row.first_name }} {{ row.last_name }}</a></td>
+          <td>{{ row.document_name }}</td>
+          <td>{{ row.due_date|shortdate }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="empty">Nothing due this week.</p>
+    {% endif %}
+  </div>
+  <div class="card">
+    <h2>Replies needing a look</h2>
+    {% if replies %}
+      {% for row in replies %}
+      <p style="margin:0 0 10px">
+        <a href="{{ url_for('participant_detail', contact_id=row.contact_id) }}">{{ row.first_name }} {{ row.last_name }}</a>
+        <span class="tag">{{ row.preferred_language|lang }}</span><br>
+        <span style="color:var(--muted)">&ldquo;{{ row.body|truncate(90) }}&rdquo; &middot; {{ row.created_at|datetime }}</span>
+      </p>
+      {% endfor %}
+    {% else %}
+    <p class="empty">No unanswered replies.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
