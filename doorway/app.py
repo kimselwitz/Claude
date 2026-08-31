@@ -5,12 +5,13 @@ Doorway -- participant communication and document chasing for housing programs.
 Web layer only: every rule about who may be texted, when, and in what language
 lives in messaging.py and nudges.py so it can be tested without a browser.
 """
+import hmac
 import os
 from datetime import date, datetime
 from functools import wraps
 
-from flask import (Flask, abort, flash, g, redirect, render_template, request,
-                   session, url_for)
+from flask import (Flask, abort, flash, g, jsonify, redirect, render_template,
+                   request, session, url_for)
 
 import db
 import languages
@@ -20,11 +21,38 @@ import nudges
 import seed
 
 
+def is_production():
+    return os.environ.get("DOORWAY_ENV", "").lower() == "production"
+
+
+def resolve_secret_key(explicit=None):
+    """Session-signing key.
+
+    In production this must come from the environment. A deployed Doorway holds
+    names, phone numbers, and message history, so quietly falling back to a
+    known development key would let anyone forge a staff session.
+    """
+    key = explicit or os.environ.get("DOORWAY_SECRET_KEY")
+    if key:
+        return key
+    if is_production():
+        raise RuntimeError(
+            "DOORWAY_SECRET_KEY must be set when DOORWAY_ENV=production. "
+            "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\"")
+    return "dev-secret-change-me"
+
+
 def create_app(db_path=None, secret_key=None):
     app = Flask(__name__)
     app.config["DATABASE"] = db_path or db.DEFAULT_DB_PATH
-    app.config["SECRET_KEY"] = secret_key or os.environ.get(
-        "DOORWAY_SECRET_KEY", "dev-secret-change-me")
+    app.config["SECRET_KEY"] = resolve_secret_key(secret_key)
+    # Staff sessions carry access to participant PII: keep the cookie away from
+    # JavaScript and off cross-site requests, and require HTTPS once deployed.
+    app.config.update(
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE="Lax",
+        SESSION_COOKIE_SECURE=is_production(),
+    )
 
     # ------------------------------------------------------------------
     # Request plumbing
@@ -637,6 +665,38 @@ def create_app(db_path=None, secret_key=None):
                 "<Response><Message>Reply STOP to stop texts. Call your case manager for "
                 "help.</Message></Response>"), 200, {"Content-Type": "application/xml"}
 
+    @app.route("/jobs/run", methods=["POST"])
+    def jobs_run():
+        """Run reminder rules and dispatch, triggered by an external scheduler.
+
+        Enabled only when DOORWAY_JOB_TOKEN is set; the caller must present it
+        in the X-Doorway-Job-Token header. This exists because some hosts
+        (Railway among them) attach a persistent volume to exactly one service,
+        so a separate cron service cannot reach the database file -- it calls
+        this instead. On a plain server, cron running `jobs.py run` is simpler.
+        """
+        expected = os.environ.get("DOORWAY_JOB_TOKEN")
+        if not expected:
+            abort(404)
+        presented = request.headers.get("X-Doorway-Job-Token", "")
+        if not hmac.compare_digest(presented, expected):
+            abort(403)
+
+        conn = get_conn()
+        summary = []
+        for row in conn.execute("SELECT id, name FROM organizations ORDER BY id"):
+            results = nudges.run(conn, row["id"])
+            queued = sum(1 for item in results if item["status"] == "queued")
+            skipped = [item for item in results if item["status"] == "skipped"]
+            sent, failed = messaging.dispatch_due(conn, row["id"])
+            models.log_action(conn, row["id"], None, "jobs.run",
+                              "%d queued, %d sent, %d failed, %d skipped"
+                              % (queued, sent, failed, len(skipped)))
+            summary.append({"org_id": row["id"], "org": row["name"], "queued": queued,
+                            "sent": sent, "failed": failed,
+                            "skipped": [item["reason"] for item in skipped]})
+        return jsonify({"ran_at": db.now_str(), "organizations": summary})
+
     @app.route("/simulate/inbound", methods=["POST"])
     @login_required
     def simulate_inbound():
@@ -705,4 +765,6 @@ def _validate_contact(form):
 app = create_app()
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    # Local development only. In production Doorway runs under gunicorn via
+    # wsgi.py -- see README.md.
+    app.run(debug=True, host="127.0.0.1", port=5000)

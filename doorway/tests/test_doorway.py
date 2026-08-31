@@ -402,6 +402,46 @@ class WebTests(Base):
         conn.close()
         self.assertEqual(row["opted_out"], 1)
 
+    def test_job_endpoint_is_disabled_without_a_token(self):
+        os.environ.pop("DOORWAY_JOB_TOKEN", None)
+        self.assertEqual(
+            self.flask_app.test_client().post("/jobs/run").status_code, 404)
+
+    def test_job_endpoint_rejects_a_wrong_token(self):
+        os.environ["DOORWAY_JOB_TOKEN"] = "right-token"
+        try:
+            client = self.flask_app.test_client()
+            self.assertEqual(client.post("/jobs/run").status_code, 403)
+            self.assertEqual(
+                client.post("/jobs/run",
+                            headers={"X-Doorway-Job-Token": "wrong"}).status_code, 403)
+        finally:
+            os.environ.pop("DOORWAY_JOB_TOKEN", None)
+
+    def test_job_endpoint_runs_reminders_with_the_right_token(self):
+        os.environ["DOORWAY_JOB_TOKEN"] = "right-token"
+        try:
+            response = self.flask_app.test_client().post(
+                "/jobs/run", headers={"X-Doorway-Job-Token": "right-token"})
+            self.assertEqual(response.status_code, 200)
+            payload = response.get_json()
+            self.assertEqual(len(payload["organizations"]), 1)
+            # Asserted on queued, not sent: whether these go out immediately or
+            # are held depends on whether the run happens inside quiet hours.
+            self.assertGreater(payload["organizations"][0]["queued"], 0)
+            self.assertEqual(payload["organizations"][0]["failed"], 0)
+        finally:
+            os.environ.pop("DOORWAY_JOB_TOKEN", None)
+
+    def test_production_requires_a_secret_key(self):
+        os.environ["DOORWAY_ENV"] = "production"
+        os.environ.pop("DOORWAY_SECRET_KEY", None)
+        try:
+            with self.assertRaises(RuntimeError):
+                app_module.resolve_secret_key()
+        finally:
+            os.environ.pop("DOORWAY_ENV", None)
+
     def test_unknown_inbound_number_is_rejected(self):
         anonymous = self.flask_app.test_client()
         self.assertEqual(

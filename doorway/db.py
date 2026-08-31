@@ -187,10 +187,19 @@ CREATE TABLE IF NOT EXISTS audit_log (
 
 
 def connect(db_path=None):
-    """Open a connection with row access by name and foreign keys enforced."""
-    conn = sqlite3.connect(db_path or DEFAULT_DB_PATH)
+    """Open a connection with row access by name and foreign keys enforced.
+
+    WAL mode and a busy timeout matter once the app runs under more than one
+    gunicorn worker: readers stop blocking the writer, and a worker that finds
+    the database briefly locked waits instead of raising.
+    """
+    path = db_path or DEFAULT_DB_PATH
+    conn = sqlite3.connect(path, timeout=15)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA busy_timeout = 15000")
+    if path != ":memory:":
+        conn.execute("PRAGMA journal_mode = WAL")
     return conn
 
 

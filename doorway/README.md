@@ -75,6 +75,11 @@ Reminders run on a schedule, not on someone remembering:
 `python jobs.py nudges --dry-run` prints exactly what would go out, in each
 participant's language, without sending anything.
 
+Where cron cannot reach the database file directly (a host that binds a volume
+to one service), a scheduler can `POST /jobs/run` instead with the
+`X-Doorway-Job-Token` header. The route stays disabled until
+`DOORWAY_JOB_TOKEN` is set.
+
 ## Sending real texts
 
 Out of the box the `console` provider writes messages to the log instead of a
@@ -93,6 +98,19 @@ Point the carrier's inbound webhook at `POST /sms/inbound`. Before real numbers
 are involved, put that route behind the provider's signature validation — it is
 deliberately unauthenticated at the app layer.
 
+## Deploying
+
+See **[DEPLOY.md](DEPLOY.md)** for Railway, which is the recommended host:
+Doorway keeps its data in SQLite on disk, so it needs a persistent volume.
+Serverless platforms (Vercel, Netlify functions) have an ephemeral filesystem
+and would silently lose every participant record between requests.
+
+Production runs under gunicorn via `wsgi.py`, which bootstraps the database on
+first boot and leaves it alone on every deploy after that. Set
+`DOORWAY_ENV=production` and the app requires a real `DOORWAY_SECRET_KEY`,
+refusing to start on the development fallback, and marks the session cookie
+`Secure`.
+
 ## Before a real pilot
 
 Doorway is a working product, not a hardened one. Things a first paying agency
@@ -102,11 +120,10 @@ needs that are not here yet:
 - **Reviewed translations.** The shipped text is starter text. Language access
   is a legal obligation under HUD LEP guidance — have the agency's own
   interpreter review each variant in the template editor.
-- **Transport security and backups.** Run behind HTTPS; the SQLite file holds
-  names, numbers, and message history.
-- **A real WSGI server** — `app.py` runs Flask's development server.
+- **Backups.** The SQLite file is the only copy, and it holds names, numbers,
+  and message history for real households. DEPLOY.md has the command.
 - **Per-user accounts.** `init_db.py` creates one admin;
-  `models.create_user()` adds more.
+  `models.create_user()` adds more. There is no invite UI.
 
 ## Tests
 
@@ -114,9 +131,9 @@ needs that are not here yet:
 python -m unittest discover -s tests -v
 ```
 
-36 tests covering phone normalization, quiet hours, consent gates, opt-out
+40 tests covering phone normalization, quiet hours, consent gates, opt-out
 propagation across shared household numbers, template fallback, reminder
-idempotency, metrics, and every page rendering.
+idempotency, metrics, job-endpoint authentication, and every page rendering.
 
 ## Layout
 
@@ -130,5 +147,6 @@ idempotency, metrics, and every page rendering.
 | `app.py` | Flask routes and forms. |
 | `jobs.py` | Cron entry point. |
 | `seed.py` | Starter templates, document types, rules, demo caseload. |
+| `wsgi.py` | Production entry point and first-boot bootstrap. |
 
 See `ROADMAP.md` for iterations 2 and 3.
