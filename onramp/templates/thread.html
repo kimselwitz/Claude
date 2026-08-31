@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block content %}
+
+<header class="top">
+  <a class="btn btn-ghost btn-sm" href="{{ url_for('now') }}" style="padding-left:0">← Back</a>
+  <p class="greeting" style="margin-top:8px">{{ t.person_name }}</p>
+  <p class="subhead">
+    <span class="pill {{ t.temperature }}">{{ temp_words[t.temperature] }} · {{ t.age_words }}</span>
+  </p>
+</header>
+
+{% if t.patience == 'fine' %}
+  <p class="patience"><b>Slow is fine with {{ t.person_name }}.</b>
+    {% if t.person_notes %}{{ t.person_notes }}{% endif %}</p>
+{% elif t.person_notes %}
+  <p class="patience">{{ t.person_notes }}</p>
+{% endif %}
+
+<div style="margin: 14px 0 20px">
+  {% for m in messages %}
+    <div class="bubble {{ 'in' if m.direction == 'in' else 'out' }} {{ 'holding' if m.kind == 'holding' }}">
+      {{ m.body }}<span class="stamp">{{ m.when_words }}</span>
+    </div>
+  {% endfor %}
+</div>
+
+{% if t.holding_ok and t.state != 'holding_sent' %}
+<h2 class="section">Buy time — sends immediately</h2>
+<p class="note">One tap. It stops the clock socially, and it's the whole difference
+  between "they're ignoring me" and "they'll get to it."</p>
+{% for s in holdings %}
+<form method="POST" action="{{ url_for('send_holding', thread_id=t.id) }}">
+  <input type="hidden" name="body" value="{{ s.text }}">
+  <button class="chip sends"><span>{{ s.text }}</span><span class="go">send</span></button>
+</form>
+{% endfor %}
+{% endif %}
+
+<h2 class="section">Write the actual reply</h2>
+
+<form method="POST" action="{{ url_for('send_reply', thread_id=t.id) }}" id="replyform">
+
+  {% if late_opener %}
+  <p class="note">It's been a while. Here's an opener that doesn't turn into an apology
+    you then have to justify:</p>
+  <button type="button" class="chip" onclick="add(this.textContent)">{{ late_opener }}</button>
+  {% endif %}
+
+  <label for="body">Your reply</label>
+  <textarea name="body" id="body" rows="4"
+            placeholder="Type it, or tap the phrases below to build it."></textarea>
+  <div class="enough" id="enough" hidden>
+    This is already fine. An imperfect reply you send beats a perfect one you don't.
+  </div>
+  <div class="row" style="margin-top:12px">
+    <button class="primary btn-wide" type="submit">Send it</button>
+  </div>
+
+  {# The library sits below the box and stays shut until asked for. Sixteen
+     phrases fanned out on arrival is the same wall of choice the app is
+     supposed to be removing. #}
+  <h2 class="section">Or build it from parts</h2>
+  {% for label, items in [('Start with', openers), ('Say', middles),
+                          ('Finish with', closers), ('Say no', declines)] %}
+    {% if items %}
+    <details class="parts">
+      <summary>{{ label }} <span class="count">{{ items|length }}</span></summary>
+      {% for s in items %}
+      <button type="button" class="chip" onclick="add(this.textContent)">{{ s.text }}</button>
+      {% endfor %}
+    </details>
+    {% endif %}
+  {% endfor %}
+</form>
+
+<h2 class="section">Or get out of it</h2>
+<div class="row">
+  <form method="POST" action="{{ url_for('snooze', thread_id=t.id) }}">
+    <input type="hidden" name="hours" value="6">
+    <button class="btn-wide">Not now</button>
+  </form>
+  <form method="POST" action="{{ url_for('snooze', thread_id=t.id) }}">
+    <input type="hidden" name="hours" value="24">
+    <button class="btn-wide">Tomorrow</button>
+  </form>
+  <form method="POST" action="{{ url_for('no_reply', thread_id=t.id) }}">
+    <button class="btn-wide">Close it unanswered</button>
+  </form>
+</div>
+
+<script>
+function add(text) {
+  var box = document.getElementById('body');
+  box.value = (box.value ? box.value.trim() + ' ' : '') + text.trim();
+  var hidden = document.createElement('input');
+  hidden.type = 'hidden'; hidden.name = 'used_script'; hidden.value = text.trim();
+  document.getElementById('replyform').appendChild(hidden);
+  box.focus();
+}
+
+/* The "good enough" nudge. Ninety seconds of editing on a two-line text is
+   almost never the reply getting better - it's the loop that ends in sending
+   nothing at all. */
+var started = null;
+document.getElementById('body').addEventListener('input', function () {
+  if (!started) started = Date.now();
+  var longEnough = this.value.trim().length > 15;
+  var slow = (Date.now() - started) > 90000;
+  document.getElementById('enough').hidden = !(longEnough && slow);
+});
+</script>
+
+{% endblock %}

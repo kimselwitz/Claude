@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+
+<header class="top">
+  <h1>Scripts</h1>
+  <p class="greeting">Sentences you don't have to invent again</p>
+  <p class="subhead">The ones you actually use rise to the top on their own.</p>
+</header>
+
+{% for slot, (title, blurb) in slot_labels.items() %}
+  <h2 class="section">{{ title }}</h2>
+  <p class="note">{{ blurb }}</p>
+  {% for s in grouped.get(slot, []) %}
+    <div class="card" style="padding:12px 14px">
+      <div style="display:flex; gap:10px; align-items:flex-start">
+        <span style="flex:1">{{ s.text }}</span>
+        {% if s.use_count %}<span class="pill effort">used {{ s.use_count }}×</span>{% endif %}
+        <form method="POST" action="{{ url_for('delete_script', script_id=s.id) }}" class="inline">
+          <button class="btn-sm btn-ghost" title="Delete">×</button>
+        </form>
+      </div>
+    </div>
+  {% else %}
+    <p class="note" style="color:var(--ink-faint)">None yet.</p>
+  {% endfor %}
+{% endfor %}
+
+<hr class="soft">
+<h2 class="section">Add one</h2>
+<form method="POST" action="{{ url_for('add_script') }}">
+  <label for="text">The sentence</label>
+  <textarea name="text" id="text" rows="2" required></textarea>
+  <label for="slot">Where it goes</label>
+  <select name="slot" id="slot">
+    {% for slot, (title, _) in slot_labels.items() %}
+      <option value="{{ slot }}">{{ title }}</option>
+    {% endfor %}
+  </select>
+  <div class="row" style="margin-top:14px">
+    <button class="primary btn-wide">Save it</button>
+  </div>
+</form>
+
+{% endblock %}

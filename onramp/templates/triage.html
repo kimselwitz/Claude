@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block content %}
+
+<header class="top">
+  <h1>Unopened</h1>
+  <p class="greeting">One question only</p>
+  <p class="subhead">Does this actually need a reply? Reading it here doesn't
+    send a read receipt, and it doesn't sign you up for anything.</p>
+</header>
+
+{% if not current %}
+  <div class="empty">
+    Nothing unopened.<br>
+    <span style="font-size:15px">You're caught up on looking, which is the hard half.</span>
+  </div>
+{% else %}
+
+<p class="note">{{ remaining }} left after this one.</p>
+
+<div class="card">
+  <div class="who">
+    <span class="name">{{ current.person_name }}</span>
+    {% if current.relationship %}<span class="rel">{{ current.relationship }}</span>{% endif %}
+    <span style="flex:1"></span>
+    <span class="pill {{ current.temperature }}">{{ current.age_words }}</span>
+  </div>
+
+  {% for m in preview %}
+    <div class="bubble {{ 'in' if m.direction == 'in' else 'out' }}">
+      {{ m.body }}<span class="stamp">{{ m.when_words }}</span>
+    </div>
+  {% endfor %}
+</div>
+
+<form method="POST" action="{{ url_for('triage_decide', thread_id=current.id) }}">
+  <h2 class="section">Needs a real reply</h2>
+  <p class="note">How big is the reply, honestly? Small ones get sorted to the top later.</p>
+  <div class="row">
+    {% for e, label in [('tiny', 'One line'), ('small', 'A few lines'), ('real', 'A real answer')] %}
+    <button class="btn-wide primary"
+            onclick="decide(this, 'yes', '{{ e }}')">{{ label }}</button>
+    {% endfor %}
+  </div>
+
+  <h2 class="section">Or it doesn't</h2>
+  <div class="row">
+    <button onclick="decide(this, 'ack', 'tiny')">Just needs a 👍</button>
+    <button onclick="decide(this, 'no', 'tiny')">Needs nothing — close it</button>
+  </div>
+  <input type="hidden" name="reply_needed" value="yes">
+  <input type="hidden" name="effort" value="small">
+</form>
+
+<script>
+/* Every button on this screen is the same submit with two hidden values set.
+   Naming the buttons instead would submit `effort` twice and leave the answer
+   depending on field order. */
+function decide(btn, replyNeeded, effort) {
+  btn.form.reply_needed.value = replyNeeded;
+  btn.form.effort.value = effort;
+}
+</script>
+
+<hr class="soft">
+<p class="note">
+  "Needs nothing" is a real answer, not a cop-out. Most messages are information,
+  not requests. Closing one is not the same as ignoring someone.
+</p>
+
+{% endif %}
+{% endblock %}

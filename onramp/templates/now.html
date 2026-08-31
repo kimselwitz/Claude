@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block content %}
+
+<header class="top">
+  <h1>Onramp</h1>
+  <p class="greeting">{{ greeting }}</p>
+  {% if open_threads or unopened %}
+    <p class="subhead">
+      {% if easy_count %}
+        {{ easy_count }} of these {{ 'is' if easy_count == 1 else 'are' }} still easy.
+        A single line costs nothing right now.
+      {% else %}
+        Cheapest first. You do not have to get to the bottom.
+      {% endif %}
+    </p>
+  {% endif %}
+</header>
+
+{% if not active_window %}
+<div class="card">
+  <div class="body dim" style="margin-top:0">
+    Set an edge on it. When the time's up you stop, finished or not.
+  </div>
+  <div class="row">
+    {% for m in [5, 10, 20] %}
+    <form method="POST" action="{{ url_for('start_window') }}" style="flex:1">
+      <input type="hidden" name="minutes" value="{{ m }}">
+      <button class="btn-wide {{ 'primary' if m == 10 }}">{{ m }} min</button>
+    </form>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% if unopened %}
+<h2 class="section">Not opened yet</h2>
+<div class="card">
+  <div class="body" style="margin-top:0">
+    {{ unopened|length }} waiting to be looked at.
+    Reading one here doesn't commit you to answering it.
+  </div>
+  <a class="btn btn-primary btn-wide" href="{{ url_for('triage') }}">Look at them</a>
+</div>
+{% endif %}
+
+<h2 class="section">Owed a reply</h2>
+
+{% if not open_threads %}
+  <div class="empty">
+    Nothing owed.<br>
+    <span style="font-size:15px">Put the phone down.</span>
+  </div>
+{% endif %}
+
+{% for t in open_threads %}
+<div class="card">
+  <div class="who">
+    <span class="name">{{ t.person_name }}</span>
+    {% if t.relationship %}<span class="rel">{{ t.relationship }}</span>{% endif %}
+    <span style="flex:1"></span>
+    <span class="pill {{ t.temperature }}">{{ t.age_words }}</span>
+  </div>
+
+  {% if t.state == 'holding_sent' %}
+    <p class="patience">You already told them you'd come back to it. The pressure's off —
+      this is now a normal conversation, not a debt.</p>
+  {% elif t.patience == 'fine' %}
+    <p class="patience"><b>{{ t.person_name }} is genuinely fine with slow.</b>
+      {% if t.person_notes %}{{ t.person_notes }}{% endif %}</p>
+  {% elif t.patience == 'notices' and t.temperature in ['cooling', 'cold'] %}
+    <p class="patience">{{ t.person_name }} notices gaps, but has never made it a problem.</p>
+  {% elif t.person_notes %}
+    <p class="patience">{{ t.person_notes }}</p>
+  {% endif %}
+
+  <p class="body">{{ t.last_message or '—' }}</p>
+
+  <div class="row" style="margin-bottom:8px">
+    {% if t.effort %}<span class="pill effort">{{ t.effort }} reply</span>{% endif %}
+    {% if t.stakes == 'high' and t.patience == 'fine' %}
+      <span class="pill effort">feels big · actually isn't</span>
+    {% endif %}
+  </div>
+
+  <div class="row">
+    <a class="btn btn-primary" href="{{ url_for('thread', thread_id=t.id) }}">Open</a>
+    {% if t.holding_ok and t.state != 'holding_sent' %}
+    <form method="POST" action="{{ url_for('send_holding', thread_id=t.id) }}">
+      <input type="hidden" name="body"
+             value="Saw this — my brain's slow today. Coming back to it properly tonight.">
+      <button class="btn-wide">Buy time</button>
+    </form>
+    {% endif %}
+    <form method="POST" action="{{ url_for('snooze', thread_id=t.id) }}">
+      <input type="hidden" name="hours" value="6">
+      <button class="btn-wide">Later</button>
+    </form>
+    <form method="POST" action="{{ url_for('no_reply', thread_id=t.id) }}">
+      <button class="btn-wide">No reply needed</button>
+    </form>
+  </div>
+</div>
+{% endfor %}
+
+{% if cold_count %}
+<div class="card quiet">
+  <p class="body dim" style="margin-top:0">
+    {{ cold_count }} {{ 'has' if cold_count == 1 else 'have' }} gone cold. Those don't get
+    answered one at a time — they get cleared in one go.
+  </p>
+  <a class="btn btn-wide" href="{{ url_for('amnesty') }}">Clear the pile</a>
+</div>
+{% endif %}
+
+{% if snoozed %}
+<h2 class="section">Put off for now</h2>
+{% for t in snoozed %}
+<div class="card quiet">
+  <div class="who">
+    <span class="name">{{ t.person_name }}</span>
+    <span style="flex:1"></span>
+    <span class="pill effort">back {{ t.snooze_words }}</span>
+  </div>
+  <form method="POST" action="{{ url_for('reopen', thread_id=t.id) }}">
+    <button class="btn-sm btn-ghost">Bring it back now</button>
+  </form>
+</div>
+{% endfor %}
+{% endif %}
+
+<hr class="soft">
+<p class="note"><a class="btn btn-ghost btn-sm" href="{{ url_for('about') }}">Why the app works this way</a></p>
+
+{% endblock %}

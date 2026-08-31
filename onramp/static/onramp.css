@@ -1,0 +1,298 @@
+/* Onramp
+   ---------------------------------------------------------------------------
+   Sensory rules this stylesheet follows, on purpose:
+   - No red, anywhere. Not for lateness, not for errors. Alarm colouring on a
+     backlog is the thing that makes the backlog unapproachable.
+   - No count badges in the chrome. A number you can see from every screen is a
+     debt tally.
+   - Nothing animates on arrival, nothing pulses, nothing slides. Motion reads
+     as urgency.
+   - Tap targets are large and spaced; body text is 17px with open leading.
+   --------------------------------------------------------------------------- */
+
+:root {
+  --bg: #f6f4ef;
+  --surface: #fffdf9;
+  --surface-2: #efece5;
+  --ink: #2c2a26;
+  --ink-soft: #6b665d;
+  --ink-faint: #948d81;
+  --line: #e2ddd3;
+
+  --accent: #4a6b62;          /* muted eucalyptus - the only "action" colour */
+  --accent-soft: #dfe8e4;
+  --good: #55705f;
+
+  /* Temperature ramp. Warm-to-quiet, never warm-to-alarming. */
+  --t-easy: #6f8f74;
+  --t-easy-bg: #e6eee5;
+  --t-warm: #a8875a;
+  --t-warm-bg: #f2ebdd;
+  --t-cooling: #7c8794;
+  --t-cooling-bg: #e8ebee;
+  --t-cold: #8a8792;
+  --t-cold-bg: #eae8ed;
+
+  --radius: 14px;
+  --shadow: 0 1px 2px rgba(44, 42, 38, .05);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1b1a18;
+    --surface: #24231f;
+    --surface-2: #2c2a26;
+    --ink: #ebe7df;
+    --ink-soft: #a8a296;
+    --ink-faint: #7d776c;
+    --line: #35332e;
+    --accent: #8fb3a6;
+    --accent-soft: #2f3a36;
+    --good: #8fb3a6;
+    --t-easy: #8fb397; --t-easy-bg: #29332a;
+    --t-warm: #c2a475; --t-warm-bg: #35301f;
+    --t-cooling: #9aa5b2; --t-cooling-bg: #292d32;
+    --t-cold: #a49fae; --t-cold-bg: #2c2a31;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 17px/1.6 ui-rounded, "SF Pro Rounded", -apple-system, BlinkMacSystemFont,
+        "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  padding-bottom: 96px;
+}
+
+.wrap { max-width: 620px; margin: 0 auto; padding: 0 18px; }
+
+/* ------------------------------------------------------------------ header */
+
+header.top {
+  padding: 26px 0 14px;
+}
+header.top h1 {
+  font-size: 15px; font-weight: 600; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--ink-faint); margin: 0 0 4px;
+}
+.greeting { font-size: 26px; font-weight: 600; margin: 0; letter-spacing: -.01em; }
+.subhead { color: var(--ink-soft); margin: 6px 0 0; font-size: 16px; }
+
+/* -------------------------------------------------------------------- nav */
+
+nav.tabs {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--surface); border-top: 1px solid var(--line);
+  display: flex; justify-content: space-around;
+  padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+  z-index: 20;
+}
+nav.tabs a {
+  flex: 1; text-align: center; text-decoration: none;
+  color: var(--ink-faint); font-size: 12.5px; font-weight: 500;
+  padding: 8px 4px; min-height: 48px;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+}
+nav.tabs a .glyph { font-size: 19px; line-height: 1; }
+nav.tabs a.on { color: var(--accent); }
+
+/* ------------------------------------------------------------------ cards */
+
+.card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 16px 16px 14px;
+  margin-bottom: 12px; box-shadow: var(--shadow);
+}
+.card.quiet { background: transparent; box-shadow: none; border-style: dashed; }
+
+.card .who { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.card .name { font-weight: 600; font-size: 18px; }
+.card .rel { color: var(--ink-faint); font-size: 14px; }
+.card .body {
+  margin: 10px 0 12px; color: var(--ink); font-size: 16px;
+  overflow-wrap: anywhere;
+}
+.card .body.dim { color: var(--ink-soft); }
+
+/* temperature pill - the age of a thread, stated softly */
+.pill {
+  display: inline-block; padding: 3px 10px; border-radius: 999px;
+  font-size: 13px; font-weight: 500; white-space: nowrap;
+}
+.pill.easy    { color: var(--t-easy);    background: var(--t-easy-bg); }
+.pill.warm    { color: var(--t-warm);    background: var(--t-warm-bg); }
+.pill.cooling { color: var(--t-cooling); background: var(--t-cooling-bg); }
+.pill.cold    { color: var(--t-cold);    background: var(--t-cold-bg); }
+.pill.effort  { color: var(--ink-soft);  background: var(--surface-2); }
+
+/* the patience line - what this person is actually like about slow replies */
+.patience {
+  font-size: 14.5px; color: var(--ink-soft); background: var(--surface-2);
+  border-radius: 10px; padding: 9px 12px; margin: 0 0 12px;
+}
+.patience b { font-weight: 600; color: var(--ink); }
+
+/* ---------------------------------------------------------------- buttons */
+
+.row { display: flex; gap: 8px; flex-wrap: wrap; }
+.row > * { flex: 1 1 auto; }
+
+button, .btn {
+  font: inherit; font-size: 15.5px; font-weight: 500;
+  border-radius: 11px; border: 1px solid var(--line);
+  background: var(--surface-2); color: var(--ink);
+  padding: 12px 14px; min-height: 48px; cursor: pointer;
+  text-align: center; text-decoration: none;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  transition: background .12s ease;
+}
+button:hover, .btn:hover { background: var(--line); }
+.btn-primary, button.primary {
+  background: var(--accent); border-color: var(--accent); color: #fff;
+}
+@media (prefers-color-scheme: dark) {
+  .btn-primary, button.primary { color: #14201c; }
+}
+.btn-primary:hover, button.primary:hover { filter: brightness(1.06); background: var(--accent); }
+.btn-ghost { background: transparent; border-color: transparent; color: var(--ink-soft); }
+.btn-wide { width: 100%; }
+.btn-sm { min-height: 40px; padding: 8px 12px; font-size: 14.5px; }
+
+form.inline { display: inline; }
+
+/* ----------------------------------------------------------------- fields */
+
+textarea, input[type=text], select {
+  font: inherit; width: 100%; padding: 12px 13px;
+  border: 1px solid var(--line); border-radius: 11px;
+  background: var(--surface); color: var(--ink); resize: vertical;
+}
+textarea:focus, input:focus, select:focus {
+  outline: 2px solid var(--accent-soft); outline-offset: 1px; border-color: var(--accent);
+}
+label { display: block; font-size: 14.5px; color: var(--ink-soft); margin: 14px 0 6px; }
+
+/* --------------------------------------------------------------- sections */
+
+h2.section {
+  font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink-faint); margin: 28px 0 10px;
+}
+.note { color: var(--ink-soft); font-size: 15px; margin: 0 0 14px; }
+.empty {
+  text-align: center; color: var(--ink-soft); padding: 34px 20px;
+  border: 1px dashed var(--line); border-radius: var(--radius); font-size: 16px;
+}
+
+/* ------------------------------------------------------------------ flash */
+
+.flash {
+  border-radius: 11px; padding: 12px 14px; margin: 0 0 14px; font-size: 15.5px;
+  background: var(--accent-soft); color: var(--ink); border: 1px solid var(--line);
+}
+
+/* ------------------------------------------------------------ reply window */
+
+.window-bar {
+  position: sticky; top: 0; z-index: 10;
+  background: var(--accent-soft); border: 1px solid var(--line);
+  border-radius: 11px; padding: 10px 14px; margin: 12px 0 4px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  font-size: 15px;
+}
+.window-bar b { font-weight: 600; }
+
+/* --------------------------------------------------------------- messages */
+
+.bubble {
+  max-width: 82%; padding: 11px 14px; border-radius: 16px;
+  margin-bottom: 8px; font-size: 16px; overflow-wrap: anywhere;
+}
+.bubble.in  { background: var(--surface); border: 1px solid var(--line); border-bottom-left-radius: 5px; }
+.bubble.out { background: var(--accent-soft); margin-left: auto; border-bottom-right-radius: 5px; }
+.bubble .stamp { display: block; font-size: 12.5px; color: var(--ink-faint); margin-top: 5px; }
+.bubble.holding { border: 1px dashed var(--accent); }
+
+/* ------------------------------------------------------------- assembler */
+
+.chip {
+  display: block; width: 100%; text-align: left; font-size: 15.5px;
+  padding: 11px 13px; margin-bottom: 7px; min-height: 44px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 11px;
+  cursor: pointer; color: var(--ink);
+}
+.chip:hover { background: var(--surface-2); }
+
+.tablist { display: flex; gap: 6px; margin: 4px 0 14px; }
+.tablist button {
+  flex: 1; min-height: 42px; font-size: 15px; padding: 9px 6px;
+  background: transparent; border: 1px solid var(--line);
+}
+.tablist button[aria-selected=true] {
+  background: var(--accent-soft); border-color: var(--accent); color: var(--ink);
+  font-weight: 600;
+}
+
+.enough {
+  font-size: 14.5px; color: var(--ink-soft); background: var(--t-easy-bg);
+  border-radius: 10px; padding: 10px 12px; margin-top: 10px;
+}
+
+/* ----------------------------------------------------------------- proof */
+
+.tally { display: flex; gap: 10px; margin-bottom: 6px; }
+.tally .box {
+  flex: 1; background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 16px 12px; text-align: center;
+}
+.tally .n { font-size: 32px; font-weight: 600; line-height: 1.1; }
+.tally .l { font-size: 13.5px; color: var(--ink-soft); margin-top: 4px; }
+
+.checkline { display: flex; gap: 11px; align-items: flex-start; padding: 12px 0;
+             border-bottom: 1px solid var(--line); }
+.checkline input[type=checkbox] { width: 22px; height: 22px; margin-top: 3px; flex: none; }
+
+hr.soft { border: 0; border-top: 1px solid var(--line); margin: 22px 0; }
+
+/* ---------------------------------------------------- collapsible script parts */
+
+details.parts { margin-bottom: 8px; }
+details.parts > summary {
+  list-style: none; cursor: pointer;
+  padding: 12px 14px; min-height: 48px;
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 11px;
+  font-size: 15.5px; font-weight: 500;
+}
+details.parts > summary::-webkit-details-marker { display: none; }
+details.parts > summary::after {
+  content: "+"; margin-left: auto; color: var(--ink-faint); font-size: 19px;
+}
+details.parts[open] > summary { border-radius: 11px 11px 0 0; background: var(--surface-2); }
+details.parts[open] > summary::after { content: "−"; }
+details.parts > summary .count {
+  font-size: 13px; color: var(--ink-faint); font-weight: 400;
+}
+details.parts .chip { border-radius: 0; border-top: 0; }
+details.parts .chip:last-child { border-radius: 0 0 11px 11px; }
+
+/* A chip that sends the moment you touch it must not look like a chip that
+   only drops text into the box. */
+.chip.sends {
+  display: flex; align-items: center; gap: 10px;
+  border-left: 3px solid var(--accent); background: var(--surface);
+}
+.chip.sends .go {
+  margin-left: auto; flex: none;
+  font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--accent); background: var(--accent-soft);
+  padding: 4px 9px; border-radius: 999px;
+}

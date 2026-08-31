@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+
+<header class="top">
+  <a class="btn btn-ghost btn-sm" href="{{ url_for('now') }}" style="padding-left:0">← Back</a>
+  <p class="greeting" style="margin-top:8px">Why it works this way</p>
+</header>
+
+<h2 class="section">The actual problem</h2>
+<p class="note">The hard part of texting isn't writing. It's the gap between seeing a
+message and answering it. Every hour in that gap raises the price of the reply — now it
+needs an apology, and the apology needs an explanation — which widens the gap. Left alone
+it ends in a thread nobody can face, and that's how people lose friends they like.</p>
+
+<h2 class="section">So the app only has four moves</h2>
+<p class="note">
+<b>Read without owing.</b> Deciding "this needs no reply" is one tap, and it's a real answer.
+Most messages are information, not requests.<br><br>
+<b>Buy time in one tap.</b> A holding reply costs a second and does most of the work —
+it converts "they're ignoring me" into "they'll get to it," which is the part that was
+actually frightening.<br><br>
+<b>Never start from blank.</b> Replies get assembled from sentences you've already
+approved. The blank box is where the paralysis lives.<br><br>
+<b>Cheapest first.</b> Urgency-sorting puts the worst message on top, which is where
+avoidance starts. Momentum gets you to the hard one; dread doesn't.
+</p>
+
+<h2 class="section">And some things it refuses to do</h2>
+<p class="note">
+No red. No badge with a number in it — a count you can see from every screen is a debt
+tally. No streaks, because a broken streak on a bad week is a reason to delete the app.
+It never says overdue. Nothing auto-sends. Every screen has an exit that isn't "reply now."
+</p>
+
+<p class="note">Built for demand avoidance as much as anxiety: an app that tells you to
+reply is an app that makes replying harder.</p>
+
+{% endblock %}

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{% block title %}Onramp{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='onramp.css') }}">
+</head>
+<body>
+
+<div class="wrap">
+
+  {% if active_window %}
+  <div class="window-bar">
+    <span>
+      {% if active_window.expired %}
+        <b>Window's up.</b> Stop wherever you are.
+      {% else %}
+        <b>{{ active_window.minutes_left }} min left.</b>
+        {{ active_window.threads_touched }} handled.
+      {% endif %}
+    </span>
+    <form method="POST" action="{{ url_for('end_window') }}" class="inline">
+      <button class="btn-sm">Done</button>
+    </form>
+  </div>
+  {% endif %}
+
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% if msgs %}
+      {% for category, m in msgs %}<div class="flash">{{ m }}</div>{% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</div>
+
+<nav class="tabs">
+  <a href="{{ url_for('now') }}" class="{{ 'on' if request.endpoint in ['now'] }}">
+    <span class="glyph">◍</span>Now</a>
+  <a href="{{ url_for('triage') }}" class="{{ 'on' if request.endpoint == 'triage' }}">
+    <span class="glyph">◐</span>Unopened</a>
+  <a href="{{ url_for('scripts') }}" class="{{ 'on' if request.endpoint == 'scripts' }}">
+    <span class="glyph">❝</span>Scripts</a>
+  <a href="{{ url_for('people') }}" class="{{ 'on' if request.endpoint in ['people','person_form'] }}">
+    <span class="glyph">◇</span>People</a>
+  <a href="{{ url_for('proof') }}" class="{{ 'on' if request.endpoint == 'proof' }}">
+    <span class="glyph">✓</span>Proof</a>
+</nav>
+
+</body>
+</html>

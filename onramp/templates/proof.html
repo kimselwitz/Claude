@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block content %}
+
+<header class="top">
+  <h1>Proof</h1>
+  <p class="greeting">What actually happened</p>
+  <p class="subhead">Not a streak and not a score. Just a record of how the thing you
+    were dreading turned out, so next time it's a question with an answer.</p>
+</header>
+
+{% if ask and ask_thread %}
+<div class="card">
+  <p class="body" style="margin-top:0">You just replied to <b>{{ ask_thread.person_name }}</b>
+    after a long gap. Did it go badly?</p>
+  <form method="POST" action="{{ url_for('log_outcome', thread_id=ask_thread.id) }}">
+    <div class="row">
+      <button name="went_badly" value="no" class="btn-wide primary">No, it was fine</button>
+      <button name="went_badly" value="yes" class="btn-wide">Yes, it did</button>
+    </div>
+  </form>
+  <form method="POST" action="{{ url_for('skip_outcome') }}" style="margin-top:8px">
+    <button class="btn-ghost btn-sm btn-wide">Skip</button>
+  </form>
+</div>
+{% endif %}
+
+{% if tally.total %}
+<div class="tally">
+  <div class="box">
+    <div class="n">{{ tally.fine }}</div>
+    <div class="l">late replies that<br>went fine</div>
+  </div>
+  <div class="box">
+    <div class="n">{{ tally.badly }}</div>
+    <div class="l">that actually<br>went badly</div>
+  </div>
+  <div class="box">
+    <div class="n">{{ tally.worst_late }}</div>
+    <div class="l">days late at<br>the worst</div>
+  </div>
+</div>
+{% if tally.fine and not tally.badly %}
+<p class="note" style="margin-top:14px">
+  Every late reply you've logged was fine. That's not luck any more, it's a pattern —
+  and it's the actual answer to the question the dread keeps asking.
+</p>
+{% endif %}
+{% else %}
+<div class="empty">Nothing logged yet. After a late reply, the app will ask you once
+  how it went.</div>
+{% endif %}
+
+{% if outcomes %}
+<h2 class="section">The record</h2>
+{% for o in outcomes %}
+<div class="card" style="padding:12px 14px">
+  <b>{{ o.person_name }}</b>
+  <span class="pill {{ 'cooling' if o.went_badly else 'easy' }}" style="margin-left:6px">
+    {{ 'went badly' if o.went_badly else 'was fine' }}</span>
+  <span class="pill effort" style="margin-left:4px">{{ o.days_late }} days late</span>
+  {% if o.note %}<div class="body dim" style="margin-bottom:0">{{ o.note }}</div>{% endif %}
+</div>
+{% endfor %}
+{% endif %}
+
+{% if windows %}
+<h2 class="section">Reply windows</h2>
+<p class="note">Sitting down at all is the part that's hard. This just shows that you have.</p>
+{% for w in windows %}
+<div class="card" style="padding:11px 14px">
+  {{ w.planned_minutes }} min · {{ w.threads_touched }} handled
+</div>
+{% endfor %}
+{% endif %}
+
+{% endblock %}

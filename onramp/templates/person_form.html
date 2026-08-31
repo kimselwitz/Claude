@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+
+<header class="top">
+  <a class="btn btn-ghost btn-sm" href="{{ url_for('people') }}" style="padding-left:0">← Back</a>
+  <p class="greeting" style="margin-top:8px">{{ person.name if person else 'Add someone' }}</p>
+</header>
+
+<form method="POST">
+  <label for="name">Name</label>
+  <input type="text" name="name" id="name" required value="{{ person.name if person else '' }}">
+
+  <label for="relationship">Who they are to you</label>
+  <input type="text" name="relationship" id="relationship" placeholder="sister, boss, friend since school"
+         value="{{ person.relationship if person else '' }}">
+
+  <label for="stakes">How much it <em>feels</em> like is riding on replying</label>
+  <select name="stakes" id="stakes">
+    {% for v, l in [('low','Not much'), ('medium','Some'), ('high','A lot')] %}
+      <option value="{{ v }}" {{ 'selected' if person and person.stakes == v }}>{{ l }}</option>
+    {% endfor %}
+  </select>
+
+  <label for="patience">How they've <em>actually</em> reacted to a slow reply</label>
+  <select name="patience" id="patience">
+    {% for v, l in [('unknown','Never really tested'), ('fine',"Genuinely fine with it"), ('notices','Notices, but never made it a problem'), ('hurt','It has landed badly before')] %}
+      <option value="{{ v }}" {{ 'selected' if person and person.patience == v }}>{{ l }}</option>
+    {% endfor %}
+  </select>
+  <p class="note" style="margin-top:8px">Answer this one from what has happened, not from what
+    you're afraid of. It's the number the rest of the app trusts.</p>
+
+  <label style="display:flex; gap:10px; align-items:center; margin-top:18px">
+    <input type="checkbox" name="holding_ok" style="width:22px;height:22px"
+           {{ 'checked' if not person or person.holding_ok }}>
+    <span>A "I'll come back to this" reply works with them</span>
+  </label>
+
+  <label for="notes">Anything worth remembering</label>
+  <textarea name="notes" id="notes" rows="3"
+    placeholder="Sends five texts in a row, only needs one answer back.">{{ person.notes if person else '' }}</textarea>
+
+  <div class="row" style="margin-top:18px">
+    <button class="primary btn-wide">Save</button>
+  </div>
+</form>
+
+{% endblock %}

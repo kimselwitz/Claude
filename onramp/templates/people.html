@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+
+<header class="top">
+  <h1>People</h1>
+  <p class="greeting">What it feels like vs. what's true</p>
+  <p class="subhead">The left column is the pressure you feel. The right one is how they've
+    actually reacted. When those disagree, the right one is the evidence.</p>
+</header>
+
+{% for p in people %}
+<div class="card">
+  <div class="who">
+    <span class="name">{{ p.name }}</span>
+    {% if p.relationship %}<span class="rel">{{ p.relationship }}</span>{% endif %}
+  </div>
+  <div class="row" style="margin:10px 0">
+    <span class="pill effort">feels {{ p.stakes }}-stakes</span>
+    <span class="pill {{ 'easy' if p.patience == 'fine' else ('warm' if p.patience == 'notices' else 'cooling') }}">
+      {% if p.patience == 'fine' %}slow is genuinely fine
+      {% elif p.patience == 'notices' %}notices, never minds
+      {% elif p.patience == 'hurt' %}gaps land badly
+      {% else %}never tested{% endif %}
+    </span>
+    {% if not p.holding_ok %}<span class="pill effort">no holding replies</span>{% endif %}
+  </div>
+  {% if p.notes %}<p class="body dim" style="margin-bottom:10px">{{ p.notes }}</p>{% endif %}
+  <a class="btn btn-sm" href="{{ url_for('person_form', person_id=p.id) }}">Edit</a>
+</div>
+{% else %}
+  <div class="empty">No one added yet.</div>
+{% endfor %}
+
+<div class="row" style="margin-top:16px">
+  <a class="btn btn-primary btn-wide" href="{{ url_for('person_form') }}">Add someone</a>
+</div>
+
+{% endblock %}

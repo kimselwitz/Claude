@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+
+<header class="top">
+  <h1>Clear the pile</h1>
+  <p class="greeting">Amnesty</p>
+  <p class="subhead">Past a certain age a message stops being a task and turns into a monument.
+    People drop whole friendships rather than climb one. This is the exit: one honest
+    message, sent to all of them, and the pile is gone.</p>
+</header>
+
+{% if not stale %}
+  <div class="empty">Nothing has gone cold. Nothing to forgive yourself for.</div>
+{% else %}
+
+<form method="POST" action="{{ url_for('amnesty_send') }}">
+  <h2 class="section">What gets sent</h2>
+  <textarea name="body" rows="5">{{ template }}</textarea>
+  <p class="note">No explanation of where you went. Explanations invite follow-up questions,
+    which is the reason these never get sent.</p>
+
+  <h2 class="section">Send it to</h2>
+  {% for t in stale %}
+  <label class="checkline" style="margin:0">
+    <input type="checkbox" name="thread_ids" value="{{ t.id }}" checked>
+    <span>
+      <b>{{ t.person_name }}</b>
+      <span class="pill cold" style="margin-left:6px">{{ t.age_words }}</span><br>
+      <span style="color:var(--ink-soft); font-size:15px">{{ t.last_message }}</span>
+    </span>
+  </label>
+  {% endfor %}
+
+  <div class="row" style="margin-top:20px">
+    <button class="primary btn-wide">Send and clear all of it</button>
+  </div>
+</form>
+
+<p class="note" style="margin-top:16px">
+  Anyone who reacts badly to this has told you something useful. Almost nobody does.
+</p>
+{% endif %}
+
+{% endblock %}
